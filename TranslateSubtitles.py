@@ -79,16 +79,66 @@ for sub_zho in sub_files:
     with open(sub_zho, "r", encoding='utf-8') as file_zh:
         text_zh = file_zh.readlines() 
         
-        text_all = ''
-        text_eng = ''
-        text_vie = ''
-        text_pin = ''
+        text_all = text_zh.copy()
+        text_pin = text_zh.copy()
+        text_eng = text_zh.copy()
+        text_vie = text_zh.copy()
 
         count = 1
         MAX_TRANS = 50
         SLEEP_ONE = 0.5
         SLEEP_BATCH = 20
+        COMBINED_TRANS = 10
+        SEPERATOR = '\n'
         
+        index_translate = []
+        text_translate = []
+
+        for i, line in enumerate(text_zh):            
+            if not re.match(NO_SUBTILE_TEXT, line): # Timing and count lines
+                index_translate.append(i)
+                text_translate.append(line)
+        
+        for i, item in enumerate(index_translate):
+            if not (i + 1) % COMBINED_TRANS:
+                combined_text = ''.join(text_translate[i - COMBINED_TRANS + 1 : i + 1])
+
+                eng = translators.translate_text(combined_text, translator='bing', from_language='zh', to_language='en')
+                expanded_eng = eng.split(SEPERATOR)
+                time.sleep(SLEEP_ONE)
+                vie = translators.translate_text(combined_text, translator='bing', from_language='zh', to_language='vi')
+                expanded_vie = vie.split(SEPERATOR)
+                pin = pinyin.get(combined_text, delimiter=' ')
+                expanded_pin = pin.split(SEPERATOR)[:-1]
+                
+                print(f'===={combined_text}\n----{pin}\n----{eng}\n---{vie}')
+
+                count = 0
+                for x in range(i - COMBINED_TRANS + 1, i + 1):
+                    y = index_translate[x]
+                    text_eng[y] = expanded_eng[count] + '\n'
+                    text_vie[y] = expanded_vie[count] + '\n'
+                    text_pin[y] = expanded_pin[count] + '\n'
+                    text_all[y] = text_zh[y] + text_pin[y] + text_vie[y]
+                    count += 1
+
+            if not i % MAX_TRANS:
+                time.sleep(SLEEP_BATCH)
+
+        with open(sub_eng, "w", encoding='utf-8') as file:
+            file.write('\n'.join(text_eng))
+
+        with open(sub_vie, "w", encoding='utf-8') as file:
+            file.write('\n'.join(text_vie))
+
+        with open(sub_pin, "w", encoding='utf-8') as file:
+            file.write('\n'.join(text_pin))
+
+        with open(sub_all, "w", encoding='utf-8') as file:
+                file.write('\n'.join(text_all))
+
+        print(f'Combined file written {sub_all}')                    
+'''            
         for line in text_zh:
             
             if re.match(NO_SUBTILE_TEXT, line): # Timing and count lines
@@ -122,23 +172,7 @@ for sub_zho in sub_files:
 
             if not count % MAX_TRANS:
                 time.sleep(SLEEP_BATCH)
-                
+'''                
 
-        if sub_eng:
-            with open(sub_eng, "w", encoding='utf-8') as file:
-                file.write(text_eng)
 
-        if sub_vie:        
-            with open(sub_vie, "w", encoding='utf-8') as file:
-                file.write(text_vie)
-
-        if sub_pin:
-            with open(sub_pin, "w", encoding='utf-8') as file:
-                file.write(text_pin)
-
-        if sub_eng and sub_vie and sub_pin:
-            with open(sub_all, "w", encoding='utf-8') as file:
-                file.write(text_all)
-
-            print(f'Combined file written {sub_all}')
 

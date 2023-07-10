@@ -12,33 +12,33 @@ import shlex
 
 import subprocess
 import json
+import time
 
 
 SUBTITLE_DIR = "./subs/"
 Path(SUBTITLE_DIR).mkdir(parents=True, exist_ok=True)
 
-# video_file = r"D:\Code\Playground\Subs\24 Peppa Pig Chinese -3DiMC6wWnc4-480pp-1688565567.mp4"
 '''
-import argostranslate.package
-import argostranslate.translate
+from transformers import MarianMTModel, MarianTokenizer
+from typing import Sequence
 
-from_code = "zh"
-to_code = "en"
+class Translator:
+    def __init__(self, source_lang: str, dest_lang: str) -> None:
+        self.model_name = f'Helsinki-NLP/opus-mt-{source_lang}-{dest_lang}'
+        self.model = MarianMTModel.from_pretrained(self.model_name)
+        self.tokenizer = MarianTokenizer.from_pretrained(self.model_name)
+        
+    def translate(self, texts: Sequence[str]) -> Sequence[str]:
+        tokens = self.tokenizer(list(texts), return_tensors="pt", padding=True)
+        translate_tokens = self.model.generate(**tokens,max_length= 60)
+        return [self.tokenizer.decode(t, skip_special_tokens=True) for t in translate_tokens]
+        
 
-# Download and install Argos Translate package
-argostranslate.package.update_package_index()
-available_packages = argostranslate.package.get_available_packages()
-package_to_install = next(
-    filter(
-        lambda x: x.from_code == from_code and x.to_code == to_code, available_packages
-    )
-)
-argostranslate.package.install_from_path(package_to_install.download())
+marian_zh_en = Translator('zh', 'en')
+print(marian_zh_en.translate(['还在笑眼睛不要了.']))
 
-# Translate
-translatedText = argostranslate.translate.translate("每个人都有他的作战策略，直到脸上中了一拳。这首歌使我想起了我年轻的时候。", from_code, to_code)
-print(translatedText)
-# '¡Hola Mundo!'
+marian_zh_vi = Translator('zh', 'vi')
+print(marian_zh_vi.translate(['还在笑眼睛不要了.']))
 '''
 
 sub_files = []
@@ -70,44 +70,59 @@ for sub_zho in sub_files:
     if os.path.exists(sub_pin):
         sub_pin = None
 
+    if (not sub_eng) or (not sub_vie) or (not sub_pin):
+        continue
+
     # Pattern for number
     NO_SUBTILE_TEXT = "^[0-9\n\r]"
 
     with open(sub_zho, "r", encoding='utf-8') as file_zh:
         text_zh = file_zh.readlines() 
         
-        count = len(text_zh)
-
         text_all = ''
         text_eng = ''
         text_vie = ''
         text_pin = ''
 
+        count = 1
+        MAX_TRANS = 50
+        SLEEP_ONE = 0.5
+        SLEEP_BATCH = 20
+        
         for line in text_zh:
+            
             if re.match(NO_SUBTILE_TEXT, line): # Timing and count lines
                 text_all += line
                 text_eng += line
                 text_vie += line
                 text_pin += line
             else:
+                count += 1
                 if sub_eng: # If file not exists
-                    eng = translators.translate_text(line, translator='google', from_language='zh', to_language='en') + '\n'
+#                    eng = marian_zh_en.translate(line)[0] + '\n'
+                    eng = translators.translate_text(line, translator='bing', from_language='zh', to_language='en') + '\n'
+                    text_eng += eng
+                    time.sleep(SLEEP_ONE)
+
+                if sub_vie: # If file not exists
+#                    vie = marian_zh_vi.translate(line)[0] + '\n'
+                    vie = translators.translate_text(line, translator='google', from_language='zh', to_language='vi') + '\n'
+                    text_vie += vie
 
                 if sub_pin: # If file not exists
                     pin = pinyin.get(line, delimiter=' ')
+                    text_pin += pin
 
-                if sub_vie: # If file not exists
-                    vie = translators.translate_text(line, translator='google', from_language='zh', to_language='vi') + '\n'
+                if sub_eng and sub_vie and sub_pin:
+                    print(f'{line}\t{pin}\t{eng}\t{vie}')
 
-                print(f'{line}\t{pin}\t{eng}\t{vie}')
+                    text_all += pin
+                    text_all += line
+                    text_all += vie
 
-                text_all += pin
-                text_all += line
-                text_all += vie
-
-                text_eng += eng
-                text_pin += pin
-                text_vie += vie
+            if not count % MAX_TRANS:
+                time.sleep(SLEEP_BATCH)
+                
 
         if sub_eng:
             with open(sub_eng, "w", encoding='utf-8') as file:

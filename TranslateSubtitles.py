@@ -86,8 +86,8 @@ for sub_zho in sub_files:
 
         count = 1
         MAX_TRANS = 50
-        SLEEP_ONE = 0.5
-        SLEEP_BATCH = 20
+        SLEEP_ONE = 1
+        SLEEP_BATCH = 60
         COMBINED_TRANS = 10
         SEPERATOR = '\n'
         
@@ -99,18 +99,35 @@ for sub_zho in sub_files:
                 index_translate.append(i)
                 text_translate.append(line)
         
+        # _ = translators.preaccelerate_and_speedtest()  # Optional. Caching sessions in advance, which can help improve access speed.
+
         for i, item in enumerate(index_translate):
             if not (i + 1) % COMBINED_TRANS:
                 combined_text = ''.join(text_translate[i - COMBINED_TRANS + 1 : i + 1])
 
-                eng = translators.translate_text(combined_text, translator='bing', from_language='zh', to_language='en')
-                expanded_eng = eng.split(SEPERATOR)
-                time.sleep(SLEEP_ONE)
-                vie = translators.translate_text(combined_text, translator='bing', from_language='zh', to_language='vi')
-                expanded_vie = vie.split(SEPERATOR)
-                pin = pinyin.get(combined_text, delimiter=' ')
-                expanded_pin = pin.split(SEPERATOR)[:-1]
-                
+                error_count = 0
+                sleep = SLEEP_BATCH
+                sleep_one = SLEEP_ONE
+
+                while error_count < 5:
+                    try:
+                        eng = translators.translate_text(combined_text, translator='bing', from_language='zh', to_language='en')
+                        expanded_eng = eng.split(SEPERATOR)
+                        time.sleep(sleep_one)
+                        vie = translators.translate_text(combined_text, translator='google', from_language='zh', to_language='vi')
+                        expanded_vie = vie.split(SEPERATOR)
+                        pin = pinyin.get(combined_text, delimiter=' ')
+                        expanded_pin = pin.split(SEPERATOR)[:-1]
+
+                        break # no need to loop when succeeds
+                    except Exception as ex:
+                        print(ex)
+                        error_count += 1
+                        time.sleep(sleep)
+
+                        sleep = sleep * 1.5
+                        sleep_one = sleep * 1.5
+
                 print(f'===={combined_text}\n----{pin}\n----{eng}\n---{vie}')
 
                 count = 0

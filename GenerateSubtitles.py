@@ -150,7 +150,7 @@ while video_files:
     # audio = video.set_channels(1).set_frame_rate(16000).set_sample_width(2)
     # audio.export(audio_file, format="wav")
 #-v quiet 
-    cmd_str = f'ffmpeg -v quiet -i "{video_file}" "{audio_file}"'
+    cmd_str = f'ffmpeg -v quiet -y -i "{video_file}" "{audio_file}"'
     print(cmd_str)
     cmds = cmd_str.split(" ")
     print(cmds)
@@ -176,7 +176,7 @@ while video_files:
     print(f'Starting transcribing... {audio_file}')
 
     result = r.recognize_whisper(audio_text, show_dict=True, language='chinese', word_timestamps=True) #translate=True, 
-
+    os.remove(audio_file)
     print(f' done.')
 
     subs = pysrt.SubRipFile()

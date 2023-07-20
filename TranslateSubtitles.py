@@ -102,7 +102,8 @@ while sub_files:
         
         # _ = translators.preaccelerate_and_speedtest()  # Optional. Caching sessions in advance, which can help improve access speed.
 
-        COMBINED_TRANS = min(100, len(text_translate))
+        NORMAL_MAX_TRANS = 100
+        COMBINED_TRANS = min(NORMAL_MAX_TRANS, len(text_translate))
 
         for i, item in enumerate(index_translate):
             if not (i + 1) % COMBINED_TRANS:

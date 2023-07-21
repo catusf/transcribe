@@ -13,67 +13,49 @@ import shlex
 import subprocess
 import json
 import time
+from datetime import datetime
 
-VIDEO_DIR = ".downloads/"
 
 SUBTITLE_DIR = "./downloads/subs/"
 Path(SUBTITLE_DIR).mkdir(parents=True, exist_ok=True)
 
-'''
-from transformers import MarianMTModel, MarianTokenizer
-from typing import Sequence
+WAITING_NEW_FILE = 5
 
-class Translator:
-    def __init__(self, source_lang: str, dest_lang: str) -> None:
-        self.model_name = f'Helsinki-NLP/opus-mt-{source_lang}-{dest_lang}'
-        self.model = MarianMTModel.from_pretrained(self.model_name)
-        self.tokenizer = MarianTokenizer.from_pretrained(self.model_name)
+while True:
+    print('Start translating...')
+    sub_files = []
+
+    sub_eng = ''
+    sub_vie = ''
+    sub_zho = ''
+    sub_pin = ''
+    sub_all = ''
+    
+    for file in glob.glob(f'{SUBTITLE_DIR}*.zh.srt'):
+        sub_zho = file
+        # print(f'Chinese sub file: {sub_zho}')
+        path, filename = os.path.split(sub_zho)
+        outpath = path
+
+        base_name = filename.split('.zh.srt')[0]
+        sub_eng = os.path.join(outpath, base_name +'.en.srt')
+        sub_vie = os.path.join(outpath, base_name +'.vi.srt')
+        sub_zho = os.path.join(outpath, base_name +'.zh.srt')
+        sub_pin = os.path.join(outpath, base_name +'.py.srt')
+        sub_all = os.path.join(outpath, base_name +'.srt')
+             
+        # Sets vars to None if files exist
+        if not (os.path.exists(sub_eng) and os.path.exists(sub_vie) and os.path.exists(sub_pin)):
+            sub_files.append(sub_zho)    
+            break
+
+    if not sub_files:
+        print(f'{datetime.now()} > No subtitle files. Waiting for {WAITING_NEW_FILE}s')
+        time.sleep(WAITING_NEW_FILE)
         
-    def translate(self, texts: Sequence[str]) -> Sequence[str]:
-        tokens = self.tokenizer(list(texts), return_tensors="pt", padding=True)
-        translate_tokens = self.model.generate(**tokens,max_length= 60)
-        return [self.tokenizer.decode(t, skip_special_tokens=True) for t in translate_tokens]
-        
-
-marian_zh_en = Translator('zh', 'en')
-print(marian_zh_en.translate(['还在笑眼睛不要了.']))
-
-marian_zh_vi = Translator('zh', 'vi')
-print(marian_zh_vi.translate(['还在笑眼睛不要了.']))
-'''
-
-sub_files = []
-
-for file in glob.glob(f'{SUBTITLE_DIR}*.zh.srt'):
-    sub_files.append(file)
-
-sub_files.sort(reverse=True)
-
-print(f'Chinese subtitle files {"|".join(sub_files)}')
-
-while sub_files:
-    sub_zho = sub_files.pop()
-    print(f'Chinese sub file: {sub_zho}')
-    path, filename = os.path.split(sub_zho)
-    outpath = path
-
-    base_name = filename.split('.zh.srt')[0]
-    sub_eng = os.path.join(outpath, base_name +'.en.srt')
-    sub_vie = os.path.join(outpath, base_name +'.vi.srt')
-    sub_zho = os.path.join(outpath, base_name +'.zh.srt')
-    sub_pin = os.path.join(outpath, base_name +'.py.srt')
-    sub_all = os.path.join(outpath, base_name +'.srt')
-
-    # Sets vars to None if files exist
-    if os.path.exists(sub_eng):
-        sub_eng = None
-    if os.path.exists(sub_vie):
-        sub_vie = None
-    if os.path.exists(sub_pin):
-        sub_pin = None
-
-    if (not sub_eng) or (not sub_vie) or (not sub_pin):
         continue
+    
+    print(f'Processing {sub_zho}')
 
     # Pattern for number
     NO_SUBTILE_TEXT = "^[0-9\n\r]"
@@ -95,7 +77,9 @@ while sub_files:
         index_translate = []
         text_translate = []
 
-        for i, line in enumerate(text_zh):            
+        for i, line in enumerate(text_zh):
+            
+            
             if not re.match(NO_SUBTILE_TEXT, line): # Timing and count lines
                 index_translate.append(i)
                 text_translate.append(line)
@@ -103,50 +87,57 @@ while sub_files:
         # _ = translators.preaccelerate_and_speedtest()  # Optional. Caching sessions in advance, which can help improve access speed.
 
         NORMAL_MAX_TRANS = 100
-        COMBINED_TRANS = min(NORMAL_MAX_TRANS, len(text_translate))
+        COMBINED_TRANS = NORMAL_MAX_TRANS
+        
+        TEXT_ITEMS = len(text_translate)
+        batches = int((TEXT_ITEMS / NORMAL_MAX_TRANS*1.0) + 0.5)
+        remaining = len(text_translate)
+        
+        for b in range(batches):           
+            text_range = text_translate[b*NORMAL_MAX_TRANS:(b+1)*NORMAL_MAX_TRANS]
+            index_range = index_translate[b*NORMAL_MAX_TRANS:(b+1)*NORMAL_MAX_TRANS]
+            length = len(text_range)
+            
+            combined_text = ''.join(text_range)
 
-        for i, item in enumerate(index_translate):
-            if not (i + 1) % COMBINED_TRANS:
-                combined_text = ''.join(text_translate[i - COMBINED_TRANS + 1 : i + 1])
+            error_count = 0
+            sleep = SLEEP_BATCH
+            sleep_one = SLEEP_ONE
 
-                error_count = 0
-                sleep = SLEEP_BATCH
-                sleep_one = SLEEP_ONE
+            while error_count < 5:
+                try:
+                    eng = translators.translate_text(combined_text, translator='baidu', from_language='zh', to_language='en')
+                    expanded_eng = eng.split(SEPERATOR)
+                    print(f'Sleeping {sleep_one}s')
+                    time.sleep(sleep_one)
+                    vie = translators.translate_text(combined_text, translator='baidu', from_language='zh', to_language='vie')
+                    expanded_vie = vie.split(SEPERATOR)
+                    pin = pinyin.get(combined_text, delimiter=' ')
+                    expanded_pin = pin.split(SEPERATOR)
 
-                while error_count < 5:
-                    try:
-                        eng = translators.translate_text(combined_text, translator='baidu', from_language='zh', to_language='en')
-                        expanded_eng = eng.split(SEPERATOR)
-                        print(f'Sleeping {sleep_one}s')
-                        time.sleep(sleep_one)
-                        vie = translators.translate_text(combined_text, translator='baidu', from_language='zh', to_language='vie')
-                        expanded_vie = vie.split(SEPERATOR)
-                        pin = pinyin.get(combined_text, delimiter=' ')
-                        expanded_pin = pin.split(SEPERATOR)[:-1]
+                    break # no need to loop when succeeds
+                except Exception as ex:
+                    print(ex)
+                    error_count += 1
+                    print(f'Sleeping {sleep}s')
+                    time.sleep(sleep)
 
-                        break # no need to loop when succeeds
-                    except Exception as ex:
-                        print(ex)
-                        error_count += 1
-                        print(f'Sleeping {sleep}s')
-                        time.sleep(sleep)
+                    sleep = sleep * 1.5
+                    sleep_one = sleep * 1.5
 
-                        sleep = sleep * 1.5
-                        sleep_one = sleep * 1.5
+            print(f'===={combined_text}\n----{pin}\n----{eng}\n---{vie}')
 
-                print(f'===={combined_text}\n----{pin}\n----{eng}\n---{vie}')
+            count = 0
+            for x in range(min(NORMAL_MAX_TRANS, TEXT_ITEMS-b*NORMAL_MAX_TRANS)):
+                y = index_translate[b*NORMAL_MAX_TRANS+x]
+                text_eng[y] = expanded_eng[count] + '\n'
+                text_vie[y] = expanded_vie[count] + '\n'
+                text_pin[y] = expanded_pin[count].strip() + '\n'
+                text_all[y] = text_zh[y] + text_pin[y] + text_vie[y]
+                count += 1
 
-                count = 0
-                for x in range(i - COMBINED_TRANS + 1, i + 1):
-                    y = index_translate[x]
-                    text_eng[y] = expanded_eng[count] + '\n'
-                    text_vie[y] = expanded_vie[count] + '\n'
-                    text_pin[y] = expanded_pin[count] + '\n'
-                    text_all[y] = text_zh[y] + text_pin[y] + text_vie[y]
-                    count += 1
-
-            # if i and not i % MAX_TRANS:
-            #     time.sleep(SLEEP_BATCH)
+        # if i and not i % MAX_TRANS:
+        #     time.sleep(SLEEP_BATCH)
 
         with open(sub_eng, "w", encoding='utf-8') as file:
             file.write(''.join(text_eng))

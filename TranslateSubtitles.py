@@ -90,7 +90,7 @@ while True:
         COMBINED_TRANS = NORMAL_MAX_TRANS
         
         TEXT_ITEMS = len(text_translate)
-        batches = int((TEXT_ITEMS / NORMAL_MAX_TRANS*1.0) + 0.5)
+        batches = round((TEXT_ITEMS / NORMAL_MAX_TRANS*1.0) + 0.5)
         remaining = len(text_translate)
         
         for b in range(batches):           

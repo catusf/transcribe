@@ -13,21 +13,20 @@ SAVE_PATH = r"./downloads" #to_do
 # list_link = "https://www.youtube.com/playlist?list=PL2vUQA5Qbw-G5GReNyWAK8XBrmAhxeaka" # Khóa 2 Tứ niệm xứ
 #list_link = "https://www.youtube.com/playlist?list=PL2vUQA5Qbw-G5GReNyWAK8XBrmAhxeaka" # Khóa 3 HỌC và THỰC HÀNH Phật Pháp trong sinh hoạt
 
-#list_link = "https://www.youtube.com/playlist?list=PLSIJismKOisEd-tT5MYM1391R9nRRI3U5" # Đi về nơi có gió
+# list_link = "https://www.youtube.com/playlist?list=PLSIJismKOisEd-tT5MYM1391R9nRRI3U5" # Đi về nơi có gió
 #list_link = "https://www.youtube.com/watch?v=hYDtKH3awpU&list=PL75pV8lKD9f7w-eHjuFPomTJLA9Kf1CrK" # Xiao Zhu Peiqi
 list_link = "https://www.youtube.com/playlist?list=PL0eGJygpmOH6SOH7RK3BexJFWkHTxbmZi"
  
 try:  
 
     playlist = Playlist(list_link)  
-
+    # yt = YouTube(link)  
 except:  
 
     print("Connection Error") #to handle exception
     exit(1)
 
-print(playlist.video_urls)
-
+print('Getting list of video urls...')
 videos = list(playlist.video_urls)
 
 first_video = 0 # Fisrt one to download
@@ -36,6 +35,8 @@ track_to_download = 'a.vi' # Select Vietnamese audio track
 create_srt_notime = True
 download_videos = True
 add_num_to_filename = True
+
+print(f'No. of videos: {len(videos)}')
 
 for num, link in enumerate(videos[first_video:]):
     num_str = f'{first_video+num+1:02d}-'
@@ -48,11 +49,11 @@ for num, link in enumerate(videos[first_video:]):
         print("Connection Error") #to handle exception
         continue
 
-    print('%2i - %s - %s' % (num, link, yt.title))
+    print('%2i - %s - %s - %s' % (num, link, yt.title, str(yt.publish_date)))
 
     # Select video/audio to download
-    audio = yt.streams.filter(type='video', mime_type='video/mp4', res="720p", progressive=False)[0]
-
+    # media = yt.streams.filter(type='video', mime_type='video/mp4', res="720p", progressive=False)[0]
+    media = yt.streams.get_highest_resolution()
     title = yt.title
 
     # Clean up title to use as filenames
@@ -89,16 +90,16 @@ for num, link in enumerate(videos[first_video:]):
                 f.write(f"{line}\n")
 
     try:  
-        print('Downloading the video...')
-
         if download_videos:
-            audio.download(SAVE_PATH, filename=mp4_filename)
+            print('Downloading the video...')
+
+            media.download(SAVE_PATH, filename=mp4_filename)
         
-        print('done')
+            print('done')
 
-    except:  
+    except Exception as ex:  
 
-        print("Some Error!")  
+        print(ex)  
 
 print('Task Completed!')  
  

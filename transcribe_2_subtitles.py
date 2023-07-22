@@ -34,7 +34,7 @@ def movie_resolution(input_file):
     metadata = json.loads(metadata)
     stream0 = metadata['streams'][0]
     width, height = stream0['width'], stream0['height']
-    print(metadata)
+    # print(metadata)
 
     return width, height
 
@@ -45,12 +45,12 @@ def movie_resolution(input_file):
 def movie_duration(input_file):
     cmds = f"ffprobe -v quiet -print_format json -show_format -hide_banner -i".split(" ")
     cmds.append(f'{input_file}')
-    print(cmds)
+    # print(cmds)
     metadata = subprocess.check_output(cmds)
 
     metadata = json.loads(metadata)
     length = float(metadata['format']['duration'])
-    print(metadata)
+    # print(metadata)
 
     return length
 

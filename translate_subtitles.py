@@ -29,7 +29,7 @@ while True:
     sub_zho = ''
     sub_pin = ''
     sub_all = ''
-    
+
     for file in glob.glob(f'{SUBTITLE_DIR}*.zh.srt'):
         sub_zho = file
         # print(f'Chinese sub file: {sub_zho}')
@@ -42,26 +42,26 @@ while True:
         sub_zho = os.path.join(outpath, base_name +'.zh.srt')
         sub_pin = os.path.join(outpath, base_name +'.py.srt')
         sub_all = os.path.join(outpath, base_name +'.srt')
-             
+
         # Sets vars to None if files exist
         if not (os.path.exists(sub_eng) and os.path.exists(sub_vie) and os.path.exists(sub_pin)):
-            sub_files.append(sub_zho)    
+            sub_files.append(sub_zho)
             break
 
     if not sub_files:
         print(f'{datetime.now()} > No subtitle files. Waiting for {WAITING_NEW_FILE}s')
         time.sleep(WAITING_NEW_FILE)
-        
+
         continue
 
     print(f'Start translating {sub_zho}...')
-    
+
     # Pattern for number
     NO_SUBTILE_TEXT = "^[0-9\n\r]"
 
     with open(sub_zho, "r", encoding='utf-8') as file_zh:
-        text_zh = file_zh.readlines() 
-        
+        text_zh = file_zh.readlines()
+
         text_all = text_zh.copy()
         text_pin = text_zh.copy()
         text_eng = text_zh.copy()
@@ -72,31 +72,31 @@ while True:
         SLEEP_ONE = 1
         SLEEP_BATCH = 60
         SEPERATOR = '\n'
-        
+
         index_translate = []
         text_translate = []
 
         for i, line in enumerate(text_zh):
-            
-            
+
+
             if not re.match(NO_SUBTILE_TEXT, line): # Timing and count lines
                 index_translate.append(i)
                 text_translate.append(line)
-        
+
         # _ = translators.preaccelerate_and_speedtest()  # Optional. Caching sessions in advance, which can help improve access speed.
 
         NORMAL_MAX_TRANS = 100
         COMBINED_TRANS = NORMAL_MAX_TRANS
-        
+
         TEXT_ITEMS = len(text_translate)
         batches = round((TEXT_ITEMS / NORMAL_MAX_TRANS*1.0) + 0.5)
         remaining = len(text_translate)
-        
-        for b in range(batches):           
+
+        for b in range(batches):
             text_range = text_translate[b*NORMAL_MAX_TRANS:(b+1)*NORMAL_MAX_TRANS]
             index_range = index_translate[b*NORMAL_MAX_TRANS:(b+1)*NORMAL_MAX_TRANS]
             length = len(text_range)
-            
+
             combined_text = ''.join(text_range)
 
             error_count = 0
@@ -150,7 +150,7 @@ while True:
         with open(sub_all, "w", encoding='utf-8') as file:
                 file.write(''.join(text_all))
 
-        print(f'Combined file written {sub_all}')                    
+        print(f'Combined file written {sub_all}')
 
     if not sub_files:
         for file in glob.glob(f'{SUBTITLE_DIR}*.zh.srt'):

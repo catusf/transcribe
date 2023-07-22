@@ -10,7 +10,8 @@ import time
 import subprocess
 import json
 from datetime import datetime
-import pathvalidate 
+import pathvalidate
+import time
 
 SUB_CLIP_DURATION = 600 # 300s or 5 min
 SPLIT_VIDEO = False
@@ -26,8 +27,8 @@ SUBTITLE_DIR = "./downloads/subs"
 '''
 def movie_resolution(input_file):
     cmds = f"ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 -print_format json -i".split(" ")
-    cmds.append(f'"input_file"')
-    print(cmds)
+    cmds.append(f'{input_file}')
+    # print(cmds)
     metadata = subprocess.check_output(cmds)
 
     metadata = json.loads(metadata)
@@ -43,7 +44,7 @@ def movie_resolution(input_file):
 '''
 def movie_duration(input_file):
     cmds = f"ffprobe -v quiet -print_format json -show_format -hide_banner -i".split(" ")
-    cmds.append(f'"input_file"')
+    cmds.append(f'{input_file}')
     print(cmds)
     metadata = subprocess.check_output(cmds)
 
@@ -56,7 +57,7 @@ def movie_duration(input_file):
 WAITING_NEW_FILE = 5
 
 # datetime object containing current date and time
- 
+
 while True:
     video_files = []
 
@@ -69,20 +70,21 @@ while True:
             video_file = new_video_file
         except Exception as ex:
             print(ex)
-            
+
         video_files.append(video_file)
         break
-    
+
     if not video_files:
         print(f'{datetime.now()} > No video files. Waiting for {WAITING_NEW_FILE}s.')
         time.sleep(WAITING_NEW_FILE)
-        
+
         continue
-    
+
     video_file = video_files.pop()
 
-    print(f'Start transcribing {video_file}...')
-    
+    print(f'Start processing {video_file}...')
+
+    video_length = movie_duration(video_file)
     path, filename = os.path.split(video_file)
     outpath = SUBTITLE_DIR
 
@@ -94,9 +96,9 @@ while True:
     no_text = "^[0-9\n\r]"
 
     cmd_str = f'ffmpeg -v quiet -y -i "{video_file}" "{audio_file}"'
-    print(cmd_str)
+    # print(cmd_str)
     cmds = cmd_str.split(" ")
-    print(cmds)
+    # print(cmds)
     # metadata = subprocess.check_output(cmds)
     os.system(cmd_str)
 
@@ -116,11 +118,15 @@ while True:
     languages = ['zh']
     sub_files = [sub_zho]
 
-    print(f'Starting processing {audio_file}...')
+    print(f'Starting transcribing {audio_file}...')
 
-    result = r.recognize_whisper(audio_text, show_dict=True, language='chinese', word_timestamps=True) #translate=True, 
+    start = time.time()
+
+    result = r.recognize_whisper(audio_text, show_dict=True, language='chinese', word_timestamps=True) #translate=True,
     os.remove(audio_file)
-    print(f' done.')
+    end = time.time()
+
+    print(f'Time elapsed {end - start:.2f} - Video length {video_length:.2f} - relative speed {video_length/(end - start):.1f}x')
 
     subs = pysrt.SubRipFile()
     sub_idx = 1
@@ -137,7 +143,7 @@ while True:
 
     if not subs:
         print(f'Subtitle empty {sub_zho}')
-    
+
     else:
         subs.save(sub_zho)
 

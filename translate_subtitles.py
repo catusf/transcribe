@@ -22,7 +22,6 @@ Path(SUBTITLE_DIR).mkdir(parents=True, exist_ok=True)
 WAITING_NEW_FILE = 5
 
 while True:
-    print('Start translating...')
     sub_files = []
 
     sub_eng = ''
@@ -54,9 +53,9 @@ while True:
         time.sleep(WAITING_NEW_FILE)
         
         continue
-    
-    print(f'Processing {sub_zho}')
 
+    print(f'Start translating {sub_zho}...')
+    
     # Pattern for number
     NO_SUBTILE_TEXT = "^[0-9\n\r]"
 

@@ -58,7 +58,6 @@ WAITING_NEW_FILE = 5
 # datetime object containing current date and time
  
 while True:
-    print('Start transcribing...')
     video_files = []
 
     for video_file in glob.glob(f"{VIDEO_DIR}/*.mp4"):
@@ -81,8 +80,9 @@ while True:
         continue
     
     video_file = video_files.pop()
+
+    print(f'Start transcribing {video_file}...')
     
-    print(f'Video file: {video_file}')
     path, filename = os.path.split(video_file)
     outpath = SUBTITLE_DIR
 

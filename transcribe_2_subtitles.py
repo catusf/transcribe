@@ -75,7 +75,7 @@ while True:
         break
 
     if not video_files:
-        print(f'{datetime.now()} > No video files. Waiting for {WAITING_NEW_FILE}s.')
+        #print(f'{datetime.now()} > No video files. Waiting for {WAITING_NEW_FILE}s.')
         time.sleep(WAITING_NEW_FILE)
 
         continue

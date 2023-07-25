@@ -49,7 +49,7 @@ while True:
             break
 
     if not sub_files:
-        print(f'{datetime.now()} > No subtitle files. Waiting for {WAITING_NEW_FILE}s')
+        #print(f'{datetime.now()} > No subtitle files. Waiting for {WAITING_NEW_FILE}s')
         time.sleep(WAITING_NEW_FILE)
 
         continue

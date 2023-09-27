@@ -21,6 +21,7 @@ numba==0.57.1
 numpy==1.24.4
 openai-whisper==20230314
 pathos==0.3.0
+pathvalidate==3.2.0
 Pillow==10.0.0
 pinyin==0.4.0
 pox==0.3.2

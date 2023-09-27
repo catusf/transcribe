@@ -5,3 +5,5 @@
 [ ] Create modular functions
 [ ] Add command line arguments
 [ ] Package to exe file
+[ ] Ensure ./downloads/subs exists
+[ ] Add a config file

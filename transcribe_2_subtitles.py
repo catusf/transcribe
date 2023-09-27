@@ -16,7 +16,7 @@ import time
 SUB_CLIP_DURATION = 600 # 300s or 5 min
 SPLIT_VIDEO = False
 
-VIDEO_DIR = "C:/Users/Dan/Downloads"
+VIDEO_DIR = "C:/Users/phanm/Downloads/"
 SUBTITLE_DIR = "./downloads/subs"
 
 # video_file = r"D:\Code\Playground\Subs\24 Peppa Pig Chinese -3DiMC6wWnc4-480pp-1688565567.mp4"

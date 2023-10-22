@@ -105,7 +105,7 @@ while True:
 
     video_length = movie_duration(video_file)
     path, filename = os.path.split(video_file)
-    outpath = SUBTITLE_DIR
+    outpath = CONFIGS['SUBTITLE_DIR']
 
     base_name = filename.split('.mp4')[0]
     audio_file = os.path.join(outpath, base_name +'.wav')

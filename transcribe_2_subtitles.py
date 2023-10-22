@@ -12,12 +12,31 @@ import json
 from datetime import datetime
 import pathvalidate
 import time
+import json
 
-SUB_CLIP_DURATION = 600 # 300s or 5 min
-SPLIT_VIDEO = False
+CONFIG_FILE = 'CONFIG.json'
 
-VIDEO_DIR = "C:/Users/Dan/Downloads"
-SUBTITLE_DIR = "./downloads/subs"
+CONFIGS = {}
+
+try:
+    with open(CONFIG_FILE, "r") as read_file:
+        CONFIGS = json.load(read_file)
+except Exception as ex:
+    print(ex)
+
+if not CONFIGS:
+    CONFIGS = {
+        'VIDEO_DIR' : 'C:/Users/it.fsoft/Downloads',
+        'SUBTITLE_DIR' : './downloads/subs',
+    }
+
+# try:
+#     with open(CONFIG_FILE, "w") as read_file:
+#         json.dump(CONFIGS, read_file)
+# except Exception as ex:
+#     print(ex)
+
+os.makedirs(CONFIGS['SUBTITLE_DIR'], exist_ok=True)
 
 # video_file = r"D:\Code\Playground\Subs\24 Peppa Pig Chinese -3DiMC6wWnc4-480pp-1688565567.mp4"
 
@@ -61,7 +80,7 @@ WAITING_NEW_FILE = 5
 while True:
     video_files = []
 
-    for video_file in glob.glob(f"{VIDEO_DIR}/*.mp4"):
+    for video_file in glob.glob(f"{CONFIGS['VIDEO_DIR']}/*.mp4"):
         if not pathvalidate.is_valid_filepath(video_file):
             new_video_file = pathvalidate.sanitize_filepath(video_file)
             new_video_file = new_video_file.replace(" ", "_")

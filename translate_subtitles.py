@@ -15,9 +15,32 @@ import json
 import time
 from datetime import datetime
 
+import json
 
-SUBTITLE_DIR = "./downloads/subs/"
-Path(SUBTITLE_DIR).mkdir(parents=True, exist_ok=True)
+CONFIG_FILE = 'CONFIG.json'
+
+CONFIGS = {}
+
+try:
+    with open(CONFIG_FILE, "r") as read_file:
+        CONFIGS = json.load(read_file)
+except Exception as ex:
+    print(ex)
+
+if not CONFIGS:
+    CONFIGS = {
+        'VIDEO_DIR' : 'C:/Users/it.fsoft/Downloads',
+        'SUBTITLE_DIR' : './downloads/subs',
+    }
+
+# try:
+#     with open(CONFIG_FILE, "w") as read_file:
+#         json.dump(CONFIGS, read_file)
+# except Exception as ex:
+#     print(ex)
+
+SUBTITLE_DIR = CONFIGS['SUBTITLE_DIR']
+os.makedirs(SUBTITLE_DIR, exist_ok=True)
 
 WAITING_NEW_FILE = 5
 
@@ -30,7 +53,8 @@ while True:
     sub_pin = ''
     sub_all = ''
 
-    for file in glob.glob(f'{SUBTITLE_DIR}*.zh.srt'):
+    patterns = f'{SUBTITLE_DIR}/*.zh.srt'
+    for file in glob.glob(patterns):
         sub_zho = file
         # print(f'Chinese sub file: {sub_zho}')
         path, filename = os.path.split(sub_zho)

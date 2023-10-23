@@ -1,9 +1,9 @@
-certifi==2023.5.7
+certifi==2023.7.22
 cffi==1.15.1
 chardet==5.1.0
 charset-normalizer==3.2.0
 colorama==0.4.6
-cryptography==41.0.2
+cryptography==41.0.4
 dill==0.3.6
 ffmpeg-python==0.2.0
 filelock==3.12.2
@@ -21,8 +21,12 @@ numba==0.57.1
 numpy==1.24.4
 openai-whisper==20230314
 pathos==0.3.0
+<<<<<<< HEAD
 pathvalidate==3.2.0
 Pillow==10.0.0
+=======
+Pillow==10.0.1
+>>>>>>> fc8ce906ee0f22fc0bb199314b5979cb67907faf
 pinyin==0.4.0
 pox==0.3.2
 ppft==1.7.6.6
@@ -42,4 +46,9 @@ torchvision==0.15.2
 tqdm==4.65.0
 translators==5.8.0
 typing_extensions==4.7.1
+<<<<<<< HEAD
+urllib3==2.0.7
+=======
 urllib3==2.0.4
+pathvalidate==3.2.0
+>>>>>>> b30f9e5 (Add config file)

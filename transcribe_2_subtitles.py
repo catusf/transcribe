@@ -79,9 +79,8 @@ WAITING_NEW_FILE = 5
 
 while True:
     video_files = []
-    
-    pattern = f"{CONFIGS['VIDEO_DIR']}/*.mp4"
-    for video_file in glob.glob(pattern):
+
+    for video_file in glob.glob(f"{CONFIGS['VIDEO_DIR']}/*.mp4"):
         if not pathvalidate.is_valid_filepath(video_file):
             new_video_file = pathvalidate.sanitize_filepath(video_file)
             new_video_file = new_video_file.replace(" ", "_")
@@ -142,58 +141,24 @@ while True:
 
     start = time.time()
 
-    # result = r.recognize_whisper(audio_text, show_dict=True, language='chinese', word_timestamps=True) #translate=True,
-
-    from faster_whisper import WhisperModel
-
-    model_size = "medium"
-
-    # Run on GPU with FP16
-    model = WhisperModel(model_size, device="cpu", compute_type="int8")
-
-    # or run on GPU with INT8
-    # model = WhisperModel(model_size, device="cuda", compute_type="int8_float16")
-    # or run on CPU with INT8
-    # model = WhisperModel(model_size, device="cpu", compute_type="int8")
-
-    segments, info = model.transcribe(audio_file, beam_size=5)
-
-    print("Detected language '%s' with probability %f" % (info.language, info.language_probability))
-
-    # for segment in segments:
-    #     print("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
-        
+    result = r.recognize_whisper(audio_text, show_dict=True, language='chinese', word_timestamps=True) #translate=True,
     os.remove(audio_file)
+    end = time.time()
+
+    print(f'Time elapsed {end - start:.2f} - Video length {video_length:.2f} - relative speed {video_length/(end - start):.1f}x')
 
     subs = pysrt.SubRipFile()
     sub_idx = 1
-
-    for segment in segments:
-        print("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
-
-        start_time = segment.start
-        end_time = segment.end
+    for i in range(len(result["segments"])):
+        start_time = result["segments"][i]["start"]
+        end_time = result["segments"][i]["end"]
         duration = end_time - start_time
         timestamp = f"{start_time:.3f} - {end_time:.3f}"
-        text = segment.text
+        text = result["segments"][i]["text"]
 
         sub = pysrt.SubRipItem(index=sub_idx, start=pysrt.SubRipTime(seconds=start_time), end=pysrt.SubRipTime(seconds=end_time), text=text)
         subs.append(sub)
         sub_idx += 1
-
-    # for i in range(len(result["segments"])):
-    #     start_time = result["segments"][i]["start"]
-    #     end_time = result["segments"][i]["end"]
-    #     duration = end_time - start_time
-    #     timestamp = f"{start_time:.3f} - {end_time:.3f}"
-    #     text = result["segments"][i]["text"]
-
-    #     sub = pysrt.SubRipItem(index=sub_idx, start=pysrt.SubRipTime(seconds=start_time), end=pysrt.SubRipTime(seconds=end_time), text=text)
-    #     subs.append(sub)
-    #     sub_idx += 1
-    end = time.time()
-
-    print(f'Time elapsed {end - start:.2f} - Video length {video_length:.2f} - relative speed {video_length/(end - start):.1f}x')
 
     if not subs:
         print(f'Subtitle empty {sub_zho}')

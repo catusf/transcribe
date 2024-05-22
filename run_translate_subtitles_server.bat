@@ -1,2 +1,1 @@
-rem call "C:\Python\envs\subtitles\Scripts\activate.bat"
-python translate_subtitles.py
+cmd /k "c:\Python312\envs\videosubs\Scripts\activate.bat && py_run_translate.bat"

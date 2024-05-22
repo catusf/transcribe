@@ -1,2 +1,1 @@
-rem call "C:\Python\envs\subtitles\Scripts\activate.bat"
-python transcribe_2_subtitles.py
+cmd.exe /k "c:\Python312\envs\videosubs\Scripts\activate.bat && py_run_transcribe.bat"

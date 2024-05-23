@@ -27,4 +27,4 @@ pip install -r requirements.txt
 
 - Copy videos to transcribe and translate to `./downloads` folder
 
-- Double click these two batch files in Explorer to start them
+- Double click these two batch files in Explorer to start them (another way is to use the build .exe files to run)

@@ -153,7 +153,7 @@ while True:
     start = time.time()
 
     result = r.recognize_whisper(
-        audio_text, show_dict=True, language="chinese", word_timestamps=True
+        audio_text, show_dict=True, word_timestamps=True
     )  # translate=True,
     os.remove(audio_file)
     end = time.time()

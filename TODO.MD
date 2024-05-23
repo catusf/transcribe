@@ -1,9 +1,12 @@
 # Todo List
-[ ] Change transcibe to faster_whisper
+[X] Remove Config
+[X] Compress wav => mp3
+[ ] Add config for other languages
+[X] Change transcibe to faster_whisper
 [X] Add a timer to Transcribe function
 [ ] Add an UI to the make it easer to use
 [ ] Create modular functions
 [ ] Add command line arguments
-[ ] Package to exe file
-[ ] Ensure ./downloads/subs exists
-[ ] Add a config file
+[x] Package to exe file
+[X] Ensure ./downloads/subs exists
+[X] Add a config file

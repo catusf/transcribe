@@ -14,23 +14,12 @@ import json
 from datetime import datetime
 import pathvalidate
 import time
-import json
 
-CONFIG_FILE = "CONFIG.json"
+# import json
 
-CONFIGS = {}
 
-try:
-    with open(CONFIG_FILE, "r") as read_file:
-        CONFIGS = json.load(read_file)
-except Exception as ex:
-    print(ex)
-
-if not CONFIGS:
-    CONFIGS = {
-        "VIDEO_DIR": "C:/Users/it.fsoft/Downloads/videos",
-        "SUBTITLE_DIR": "./downloads/subs",
-    }
+VIDEO_DIR = "./downloads"
+SUBTITLE_DIR = "./downloads/subs"
 
 # try:
 #     with open(CONFIG_FILE, "w") as read_file:
@@ -38,7 +27,7 @@ if not CONFIGS:
 # except Exception as ex:
 #     print(ex)
 
-os.makedirs(CONFIGS["SUBTITLE_DIR"], exist_ok=True)
+os.makedirs(SUBTITLE_DIR, exist_ok=True)
 
 # video_file = r"D:\Code\Playground\Subs\24 Peppa Pig Chinese -3DiMC6wWnc4-480pp-1688565567.mp4"
 
@@ -89,19 +78,20 @@ WAITING_NEW_FILE = 5
 
 # datetime object containing current date and time
 
+print(f"Waiting for new video files in {VIDEO_DIR}...")
+
 while True:
     video_files = []
-    new_video_file = ""
 
-    for video_file in glob.glob(f"{CONFIGS['VIDEO_DIR']}/*.mp4"):
+    for video_file in glob.glob(f"{VIDEO_DIR}/*.mp4"):
         if not pathvalidate.is_valid_filepath(video_file):
             new_video_file = pathvalidate.sanitize_filepath(video_file)
             new_video_file = new_video_file.replace(" ", "_")
-        try:
-            shutil.move(video_file, new_video_file)
-            video_file = new_video_file
-        except Exception as ex:
-            print(ex)
+            try:
+                shutil.move(video_file, new_video_file)
+                video_file = new_video_file
+            except Exception as ex:
+                print(ex)
 
         video_files.append(video_file)
         break
@@ -118,16 +108,24 @@ while True:
 
     video_length = movie_duration(video_file)
     path, filename = os.path.split(video_file)
-    outpath = CONFIGS["SUBTITLE_DIR"]
+    outpath = SUBTITLE_DIR
 
     base_name = filename.split(".mp4")[0]
     audio_file = os.path.join(outpath, base_name + ".wav")
+    mp3_file = os.path.join(outpath, base_name + ".mp3")
     new_video_file = os.path.join(outpath, base_name + ".mp4")
     sub_zho = os.path.join(outpath, base_name + ".zh.srt")
 
     no_text = "^[0-9\n\r]"
 
     cmd_str = f'ffmpeg -v quiet -y -i "{video_file}" "{audio_file}"'
+    # print(cmd_str)
+    cmds = cmd_str.split(" ")
+    # print(cmds)
+    # metadata = subprocess.check_output(cmds)
+    os.system(cmd_str)
+
+    cmd_str = f'ffmpeg -v quiet -y -i "{video_file}" "{mp3_file}"'
     # print(cmd_str)
     cmds = cmd_str.split(" ")
     # print(cmds)
@@ -189,3 +187,4 @@ while True:
         subs.save(sub_zho)
 
         print(f"Subtitle written {sub_zho}")
+        print(f"Waiting for new video files in {VIDEO_DIR}...")

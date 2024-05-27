@@ -1,9 +1,6 @@
-import speech_recognition as sr
-
 # from pydub import AudioSegment
 import os
 import re
-import pysrt
 import pinyin
 import translators
 from pathlib import Path
@@ -12,11 +9,10 @@ import shutil
 import shlex
 
 import subprocess
-import json
 import time
-from datetime import datetime
 
-import json
+# from datetime import datetime
+
 
 SUBTITLE_DIR = "./downloads/subs"
 

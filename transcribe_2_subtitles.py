@@ -53,6 +53,81 @@ def movie_resolution(input_file):
     return width, height
 
 
+import os
+import re
+from pytube import YouTube
+import requests
+
+
+def clean_filename(name):
+    """Cleans the filename by removing any invalid characters."""
+    return re.sub(r"[^a-zA-Z0-9_\- .]", "", name)
+
+
+def download_file(url, filename):
+    """Downloads a file from a URL."""
+    response = requests.get(url, stream=True)
+    with open(filename, "wb") as file:
+        for chunk in response.iter_content(chunk_size=8192):
+            file.write(chunk)
+
+
+def download_youtube_video(url):
+    """Downloads a YouTube video in 720p."""
+    yt = YouTube(url)
+    stream = yt.streams.filter(res="720p", file_extension="mp4").first()
+    if stream:
+        filename = clean_filename(yt.title) + ".mp4"
+        stream.download(filename=filename)
+        return True
+    else:
+        print(f"720p video not available for {url}")
+        return False
+
+
+def process_urls(file_path):
+    """Processes the URLs from the file and downloads content accordingly, removing successfully processed URLs."""
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    # Skip the first line if it's a comment
+    if lines[0].startswith("#"):
+        urls = lines[1:]
+    else:
+        urls = lines
+
+    remaining_urls = []
+
+    for line in urls:
+        url = line.strip()
+        if not url:
+            continue
+
+        print(f"Downloading {url}...")
+
+        try:
+            if "youtube.com" in url or "youtu.be" in url:
+                success = download_youtube_video(url)
+            else:
+                filename = os.path.basename(url)
+                filename = clean_filename(filename)
+                download_file(url, filename)
+                success = True
+
+            if not success:
+                remaining_urls.append(line)
+        except Exception as e:
+            print(f"Failed to download {url}: {e}")
+            remaining_urls.append(line)
+
+    # Write remaining URLs back to the file
+    with open(file_path, "w") as file:
+        if lines[0].startswith("#"):
+            file.write(lines[0])  # Write the comment line
+        for url in remaining_urls:
+            file.write(url + "\n")
+
+
 """ Get video file's duration
 
     Requires ffmpeg installed
@@ -80,59 +155,70 @@ WAITING_NEW_FILE = 5
 
 print(f"Waiting for new video files in {VIDEO_DIR}...")
 
-while True:
-    video_files = []
 
-    for video_file in glob.glob(f"{VIDEO_DIR}/*.mp4"):
-        if not pathvalidate.is_valid_filepath(video_file):
-            new_video_file = pathvalidate.sanitize_filepath(video_file)
-            new_video_file = new_video_file.replace(" ", "_")
+# This required ffmpeg present in system path
+def convert_media(input, output):
+    if input == output:
+        print(f"Input and output are the same: {input}")
+        return False
+
+    cmd_str = f'ffmpeg -v quiet -y -i "{input}" "{output}"'
+
+    os.system(cmd_str)
+    return True
+
+
+while True:
+    media_files = []
+
+    process_urls(f"{VIDEO_DIR}/urls.txt")
+
+    for media_file in (
+        glob.glob(f"{VIDEO_DIR}/*.mp4")
+        + glob.glob(f"{VIDEO_DIR}/*.mp3")
+        + glob.glob(f"{VIDEO_DIR}/*.m4a")
+        + glob.glob(f"{VIDEO_DIR}/*.wav")
+    ):
+        if not pathvalidate.is_valid_filepath(media_file):
+            new_media_file = pathvalidate.sanitize_filepath(media_file)
+            new_media_file = new_media_file.replace(" ", "_")
             try:
-                shutil.move(video_file, new_video_file)
-                video_file = new_video_file
+                shutil.move(media_file, new_media_file)
+                media_file = new_media_file
             except Exception as ex:
                 print(ex)
 
-        video_files.append(video_file)
+        media_files.append(media_file)
         break
 
-    if not video_files:
+    if not media_files:
         # print(f'{datetime.now()} > No video files. Waiting for {WAITING_NEW_FILE}s.')
         time.sleep(WAITING_NEW_FILE)
 
         continue
 
-    video_file = video_files.pop()
+    media_file = media_files.pop()
 
-    print(f"Start processing {video_file}...")
+    print(f"Start processing {media_file}...")
 
-    video_length = movie_duration(video_file)
-    path, filename = os.path.split(video_file)
     outpath = SUBTITLE_DIR
+    video_length = movie_duration(media_file)
+    path, filename = os.path.split(media_file)
+    base_name, extension = os.path.splitext(filename)
+    base_path = os.path.join(outpath, base_name)
+    new_media_file = os.path.join(outpath, base_name) + extension
 
-    base_name = filename.split(".mp4")[0]
-    audio_file = os.path.join(outpath, base_name + ".wav")
-    mp3_file = os.path.join(outpath, base_name + ".mp3")
-    new_video_file = os.path.join(outpath, base_name + ".mp4")
-    sub_zho = os.path.join(outpath, base_name + ".zh.srt")
+    audio_file = base_path + ".wav"
+    mp3_file = base_path + ".mp3"
+    sub_zho = base_path + ".zh.srt"
+    txt_sub = base_path + ".txt"
 
     no_text = "^[0-9\n\r]"
 
-    cmd_str = f'ffmpeg -v quiet -y -i "{video_file}" "{audio_file}"'
-    # print(cmd_str)
-    cmds = cmd_str.split(" ")
-    # print(cmds)
-    # metadata = subprocess.check_output(cmds)
-    os.system(cmd_str)
+    convert_media(media_file, audio_file)
+    convert_media(media_file, mp3_file)
 
-    cmd_str = f'ffmpeg -v quiet -y -i "{video_file}" "{mp3_file}"'
-    # print(cmd_str)
-    cmds = cmd_str.split(" ")
-    # print(cmds)
-    # metadata = subprocess.check_output(cmds)
-    os.system(cmd_str)
-
-    shutil.move(video_file, new_video_file)
+    shutil.move(media_file, new_media_file)
 
     print(f"Audio file exported {audio_file}")
 
@@ -164,7 +250,10 @@ while True:
 
     subs = pysrt.SubRipFile()
     sub_idx = 1
-    for i in range(len(result["segments"])):
+    item_count = len(result["segments"])
+    lines = []
+
+    for i in range(item_count):
         start_time = result["segments"][i]["start"]
         end_time = result["segments"][i]["end"]
         duration = end_time - start_time
@@ -177,14 +266,20 @@ while True:
             end=pysrt.SubRipTime(seconds=end_time),
             text=text,
         )
+        lines.append(text)
         subs.append(sub)
         sub_idx += 1
+
+        # print(f"{sub_idx}/{item_count}")
 
     if not subs:
         print(f"Subtitle empty {sub_zho}")
 
     else:
         subs.save(sub_zho)
+
+        with open(txt_sub, "w", encoding="utf-8") as file:
+            file.write("\n".join(lines))
 
         print(f"Subtitle written {sub_zho}")
         print(f"Waiting for new video files in {VIDEO_DIR}...")

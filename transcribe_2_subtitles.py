@@ -139,7 +139,7 @@ def translate_zh_subs(WAITING_NEW_FILE=5):
                     sleep = sleep * 1.5
                     sleep_one = sleep * 1.5
 
-            print(f"===={combined_text}\n----{pin}\n----{eng}\n---{vie}")
+            # print(f"===={combined_text}\n----{pin}\n----{eng}\n---{vie}")
 
             count = 0
             for x in range(min(NORMAL_MAX_TRANS, TEXT_ITEMS - b * NORMAL_MAX_TRANS)):
@@ -375,8 +375,6 @@ def transcribe_media(WAITING_NEW_FILE=5):
     convert_media(media_file, audio_file)
     convert_media(media_file, mp3_file)
 
-    shutil.move(media_file, new_media_file)
-
     print(f"Audio file exported {audio_file}")
 
     # Initialize recognizer class (for recognizing the speech)
@@ -440,6 +438,8 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
         print(f"Subtitle written {sub_zho}")
         print(f"Waiting for new video files in {MEDIA_DIR}...")
+
+    shutil.move(media_file, new_media_file)
 
 
 while True:

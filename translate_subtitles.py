@@ -24,11 +24,12 @@ SUBTITLE_DIR = "./downloads/subs"
 
 os.makedirs(SUBTITLE_DIR, exist_ok=True)
 
-WAITING_NEW_FILE = 5
+# WAITING_NEW_FILE = 5
 
 print(f"Waiting for new subtiles files in {SUBTITLE_DIR}...")
 
-while True:
+
+def translate_zh_subs(WAITING_NEW_FILE=5):
     sub_files = []
 
     sub_eng = ""
@@ -64,7 +65,7 @@ while True:
         # print(f'{datetime.now()} > No subtitle files. Waiting for {WAITING_NEW_FILE}s')
         time.sleep(WAITING_NEW_FILE)
 
-        continue
+        return
 
     print(f"Start translating {sub_zho}...")
 
@@ -185,4 +186,8 @@ while True:
         sub_files.sort(reverse=True)
 
         if not sub_files:  # Nothing to translate
-            break
+            return
+
+
+while True:
+    translate_zh_subs(5)

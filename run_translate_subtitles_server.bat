@@ -1,1 +1,0 @@
-cmd /k "c:\Python312\envs\videosubs\Scripts\activate.bat && py_run_translate.bat"

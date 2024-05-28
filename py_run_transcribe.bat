@@ -1,1 +1,0 @@
-python transcribe_2_subtitles.py

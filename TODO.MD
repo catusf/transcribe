@@ -1,4 +1,6 @@
 # Todo List
+[ ] Call Translate at the same time with transcribe
+[ ] Generate a txt file for the transcript without time 
 [ ] Fix crash issue 
 [ ] Add and monitor url files
 	If youtube.com => use PyTube

@@ -15,8 +15,45 @@ import pysrt
 import speech_recognition as sr
 import translators
 
+from gooey import Gooey, GooeyParser
+
 MEDIA_DIR = "./downloads"
 SUBTITLE_DIR = "./downloads/subs"
+
+
+@Gooey(program_name="Subtitle Translator")
+def main():
+    global MEDIA_DIR
+    global SUBTITLE_DIR
+
+    parser = GooeyParser(description="Translate Chinese Subtitles")
+
+    parser.add_argument(
+        "media_dir",
+        metavar="Media Directory",
+        action="store",
+        default=MEDIA_DIR,
+        help="Directory containing media files",
+    )
+
+    parser.add_argument(
+        "subtitle_dir",
+        metavar="Subtitle Directory",
+        action="store",
+        default=SUBTITLE_DIR,
+        help="Directory to store subtitle files",
+    )
+
+    args = parser.parse_args()
+
+    MEDIA_DIR = args.media_dir
+    SUBTITLE_DIR = args.subtitle_dir
+
+    os.makedirs(SUBTITLE_DIR, exist_ok=True)
+
+    while True:
+        transcribe_media(5)
+        translate_zh_subs(0)
 
 
 def translate_zh_subs(WAITING_NEW_FILE=5):
@@ -31,7 +68,6 @@ def translate_zh_subs(WAITING_NEW_FILE=5):
     patterns = f"{SUBTITLE_DIR}/*.zh.srt"
     for file in glob.glob(patterns):
         sub_zho = file
-        # print(f'Chinese sub file: {sub_zho}')
         path, filename = os.path.split(sub_zho)
         outpath = path
 
@@ -42,7 +78,6 @@ def translate_zh_subs(WAITING_NEW_FILE=5):
         sub_pin = os.path.join(outpath, base_name + ".py.srt")
         sub_all = os.path.join(outpath, base_name + ".srt")
 
-        # Sets vars to None if files exist
         if not (
             os.path.exists(sub_eng)
             and os.path.exists(sub_vie)
@@ -52,15 +87,10 @@ def translate_zh_subs(WAITING_NEW_FILE=5):
             break
 
     if not sub_files:
-        # print(f'{datetime.now()} > No subtitle files. Waiting for {WAITING_NEW_FILE}s')
         time.sleep(WAITING_NEW_FILE)
-
         return
 
-    # Pattern for number
     NO_SUBTILE_TEXT = "^[0-9\n\r]"
-
-    # sub_zho = sub_files.pop()
     print(f"Start translating {sub_zho}...")
     with open(sub_zho, "r", encoding="utf-8") as file_zh:
         text_zh = file_zh.readlines()
@@ -80,11 +110,9 @@ def translate_zh_subs(WAITING_NEW_FILE=5):
         text_translate = []
 
         for i, line in enumerate(text_zh):
-            if not re.match(NO_SUBTILE_TEXT, line):  # Timing and count lines
+            if not re.match(NO_SUBTILE_TEXT, line):
                 index_translate.append(i)
                 text_translate.append(line)
-
-        # _ = translators.preaccelerate_and_speedtest()  # Optional. Caching sessions in advance, which can help improve access speed.
 
         NORMAL_MAX_TRANS = 100
         COMBINED_TRANS = NORMAL_MAX_TRANS
@@ -129,7 +157,7 @@ def translate_zh_subs(WAITING_NEW_FILE=5):
                     pin = pinyin.get(combined_text, delimiter=" ")
                     expanded_pin = pin.split(SEPERATOR)
 
-                    break  # no need to loop when succeeds
+                    break
                 except Exception as ex:
                     print(ex)
                     error_count += 1
@@ -139,8 +167,6 @@ def translate_zh_subs(WAITING_NEW_FILE=5):
                     sleep = sleep * 1.5
                     sleep_one = sleep * 1.5
 
-            # print(f"===={combined_text}\n----{pin}\n----{eng}\n---{vie}")
-
             count = 0
             for x in range(min(NORMAL_MAX_TRANS, TEXT_ITEMS - b * NORMAL_MAX_TRANS)):
                 y = index_translate[b * NORMAL_MAX_TRANS + x]
@@ -149,9 +175,6 @@ def translate_zh_subs(WAITING_NEW_FILE=5):
                 text_pin[y] = expanded_pin[count].strip() + "\n"
                 text_all[y] = text_zh[y] + text_pin[y] + text_vie[y]
                 count += 1
-
-        # if i and not i % MAX_TRANS:
-        #     time.sleep(SLEEP_BATCH)
 
         with open(sub_eng, "w", encoding="utf-8") as file:
             file.write("".join(text_eng))
@@ -166,8 +189,7 @@ def translate_zh_subs(WAITING_NEW_FILE=5):
             file.write("".join(text_all))
 
         print(f"Combined file written {sub_all}")
-
-        print(f"Waiting for new subtiles files in {SUBTITLE_DIR}...")
+        print(f"Waiting for new subtitle files in {SUBTITLE_DIR}...")
 
     if not sub_files:
         for file in glob.glob(f"{SUBTITLE_DIR}*.zh.srt"):
@@ -175,24 +197,8 @@ def translate_zh_subs(WAITING_NEW_FILE=5):
 
         sub_files.sort(reverse=True)
 
-        if not sub_files:  # Nothing to translate
+        if not sub_files:
             return
-
-
-# try:
-#     with open(CONFIG_FILE, "w") as read_file:
-#         json.dump(CONFIGS, read_file)
-# except Exception as ex:
-#     print(ex)
-
-os.makedirs(SUBTITLE_DIR, exist_ok=True)
-
-# video_file = r"D:\Code\Playground\Subs\24 Peppa Pig Chinese -3DiMC6wWnc4-480pp-1688565567.mp4"
-
-""" Get video file's first stream's width and height
-
-    Requires ffmpeg installed
-"""
 
 
 def movie_resolution(input_file):
@@ -200,31 +206,24 @@ def movie_resolution(input_file):
         " "
     )
     cmds.append(f"{input_file}")
-    # print(cmds)
     metadata = subprocess.check_output(cmds)
 
     metadata = json.loads(metadata)
     stream0 = metadata["streams"][0]
     width, height = stream0["width"], stream0["height"]
-    # print(metadata)
 
     return width, height
 
-
-import os
-import re
 
 import requests
 from pytube import YouTube
 
 
 def clean_filename(name):
-    """Cleans the filename by removing any invalid characters."""
     return re.sub(r"[^a-zA-Z0-9_\- .]", "", name)
 
 
 def download_file(url, filename):
-    """Downloads a file from a URL."""
     response = requests.get(url, stream=True)
     with open(filename, "wb") as file:
         for chunk in response.iter_content(chunk_size=8192):
@@ -232,7 +231,6 @@ def download_file(url, filename):
 
 
 def download_youtube_video(url):
-    """Downloads a YouTube video in 720p."""
     yt = YouTube(url)
     stream = yt.streams.filter(res="720p", file_extension="mp4").first()
     if stream:
@@ -245,11 +243,9 @@ def download_youtube_video(url):
 
 
 def process_urls(file_path):
-    """Processes the URLs from the file and downloads content accordingly, removing successfully processed URLs."""
     with open(file_path, "r") as file:
         lines = file.readlines()
 
-    # Skip the first line if it's a comment
     if lines[0].startswith("#"):
         urls = lines[1:]
     else:
@@ -279,18 +275,11 @@ def process_urls(file_path):
             print(f"Failed to download {url}: {e}")
             remaining_urls.append(line)
 
-    # Write remaining URLs back to the file
     with open(file_path, "w") as file:
         if lines[0].startswith("#"):
-            file.write(lines[0])  # Write the comment line
+            file.write(lines[0])
         for url in remaining_urls:
             file.write(url + "\n")
-
-
-""" Get video file's duration
-
-    Requires ffmpeg installed
-"""
 
 
 def movie_duration(input_file):
@@ -298,22 +287,14 @@ def movie_duration(input_file):
         " "
     )
     cmds.append(f"{input_file}")
-    # print(cmds)
     metadata = subprocess.check_output(cmds)
 
     metadata = json.loads(metadata)
     length = float(metadata["format"]["duration"])
-    # print(metadata)
 
     return length
 
 
-# datetime object containing current date and time
-
-print(f"Waiting for new video files in {MEDIA_DIR}...")
-
-
-# This required ffmpeg present in system path
 def convert_media(input, output):
     if input == output:
         print(f"Input and output are the same: {input}")
@@ -346,12 +327,9 @@ def transcribe_media(WAITING_NEW_FILE=5):
                 print(ex)
 
         media_files.append(media_file)
-        # return
 
     if not media_files:
-        # print(f'{datetime.now()} > No video files. Waiting for {WAITING_NEW_FILE}s.')
         time.sleep(WAITING_NEW_FILE)
-
         return
 
     media_file = media_files.pop()
@@ -377,13 +355,10 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
     print(f"Audio file exported {audio_file}")
 
-    # Initialize recognizer class (for recognizing the speech)
     r = sr.Recognizer()
 
-    # Open the audio file
     with sr.AudioFile(audio_file) as source:
         audio_text = r.record(source)
-    # Recognize the speech in the audio
 
     translations = [False]
     languages = ["zh"]
@@ -393,9 +368,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
     start = time.time()
 
-    result = r.recognize_whisper(
-        audio_text, show_dict=True, word_timestamps=True
-    )  # translate=True,
+    result = r.recognize_whisper(audio_text, show_dict=True, word_timestamps=True)
     os.remove(audio_file)
     end = time.time()
 
@@ -425,8 +398,6 @@ def transcribe_media(WAITING_NEW_FILE=5):
         subs.append(sub)
         sub_idx += 1
 
-        # print(f"{sub_idx}/{item_count}")
-
     if not subs:
         print(f"Subtitle empty {sub_zho}")
 
@@ -442,6 +413,5 @@ def transcribe_media(WAITING_NEW_FILE=5):
     shutil.move(media_file, new_media_file)
 
 
-while True:
-    transcribe_media(5)
-    translate_zh_subs(0)
+if __name__ == "__main__":
+    main()

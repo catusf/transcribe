@@ -381,7 +381,9 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
     start = time.time()
 
-    result = r.recognize_whisper(audio_text, show_dict=True, word_timestamps=True)
+    result = r.recognize_whisper(
+        audio_text, language="chinese", show_dict=True, word_timestamps=True
+    )
     os.remove(audio_file)
     end = time.time()
 
@@ -475,12 +477,14 @@ def main():
     # iteration_count = 0
     # max_iterations = 10  # or some appropriate number based on your requirements
 
+    print("Waiting for new media files...")
     while True:
         process_urls(URL_FILE)
         transcribe_media(5)
         translate_subs(0)
-        print("Waiting for new media files...")
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    transcribe_media(5)
+    translate_subs(0)

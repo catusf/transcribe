@@ -18,6 +18,7 @@ from gooey import Gooey, GooeyParser
 
 # Constants
 MEDIA_DIR = "./downloads"
+LANGUAGE = "chinese"
 URL_FILE = "./downloads/urls.txt"
 SUBTITLE_DIR = "./downloads/subs"
 TRANSLATOR_SERVICE = "baidu"  # Define the default translator service here
@@ -382,7 +383,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     start = time.time()
 
     result = r.recognize_whisper(
-        audio_text, language="chinese", show_dict=True, word_timestamps=True
+        audio_text, language=LANGUAGE, show_dict=True, word_timestamps=True
     )
     os.remove(audio_file)
     end = time.time()
@@ -430,9 +431,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
 @Gooey(program_name="Media Transcriber")
 def main():
-    global MEDIA_DIR
-    global SUBTITLE_DIR
-    global TRANSLATOR_SERVICE
+    global MEDIA_DIR, SUBTITLE_DIR, TRANSLATOR_SERVICE, LANGUAGE
 
     parser = GooeyParser(description="Transcriber Media & Translate Subtitles")
 
@@ -460,11 +459,19 @@ def main():
         help="Translation service to use (e.g., baidu, google, etc.)",
     )
 
+    parser.add_argument(
+        "language",
+        metavar="Audio language",
+        action="store",
+        default=LANGUAGE,
+        help="Audio language",
+    )
     args = parser.parse_args()
 
     MEDIA_DIR = args.media_dir
     SUBTITLE_DIR = args.subtitle_dir
     TRANSLATOR_SERVICE = args.translator_service
+    LANGUAGE = args.language
 
     os.makedirs(SUBTITLE_DIR, exist_ok=True)
 
@@ -485,6 +492,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    transcribe_media(5)
-    translate_subs(0)
+    main()
+    # transcribe_media(5)
+    # translate_subs(0)

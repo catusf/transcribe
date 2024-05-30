@@ -410,7 +410,10 @@ def transcribe_media(WAITING_NEW_FILE=5):
             end=pysrt.SubRipTime(seconds=end_time),
             text=text,
         )
-        lines.append(text)
+
+        if text.strip():
+            lines.append(text)
+
         subs.append(sub)
         sub_idx += 1
 

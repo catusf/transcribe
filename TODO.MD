@@ -1,9 +1,9 @@
 # Todo List
-[ ] Add an UI Gooey to the make it easer to use
-[ ] Add and monitor url files: 	If youtube.com => use PyTube; 	Else download as normal
-[ ] Add config for other languages
+[ ] Add config for languages to translate
 [ ] Cache the translations: By translator => language => phrases to json files
-[ ] Handle the case downloads folder and urls.txt dont exist
+[X] Add an UI Gooey to the make it easer to use
+[X] Add and monitor url files: 	If youtube.com => use PyTube; 	Else download as normal
+[X] Handle the case downloads folder and urls.txt dont exist
 [X] Add a config file
 [X] Add a timer to Transcribe function
 [X] Add command line arguments

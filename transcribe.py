@@ -15,6 +15,7 @@ import pysrt
 import speech_recognition as sr
 import translators
 from gooey import Gooey, GooeyParser
+from utils import languageEnglish2Code
 
 # Constants
 MEDIA_DIR = "./downloads"
@@ -24,7 +25,9 @@ SUBTITLE_DIR = "./downloads/subs"
 TRANSLATOR_SERVICE = "baidu"  # Define the default translator service here
 
 
-def translate_subs(WAITING_NEW_FILE=5):
+def translate_subs(
+    WAITING_NEW_FILE=5, translator=TRANSLATOR_SERVICE, language=LANGUAGE
+):
     sub_files = []
 
     sub_eng = ""
@@ -32,6 +35,12 @@ def translate_subs(WAITING_NEW_FILE=5):
     sub_zho = ""
     sub_pin = ""
     sub_all = ""
+
+    if language not in languageEnglish2Code:
+        print(f"Cannot find language name: {language}")
+        exit(2)
+
+    langcode = languageEnglish2Code[language]
 
     patterns = f"{SUBTITLE_DIR}/*.zh.srt"
     for file in glob.glob(patterns):
@@ -117,8 +126,8 @@ def translate_subs(WAITING_NEW_FILE=5):
                 try:
                     eng = translators.translate_text(
                         combined_text,
-                        translator="baidu",
-                        from_language="zh",
+                        translator=translator,
+                        from_language=langcode,
                         to_language="en",
                     )
                     expanded_eng = eng.split(SEPERATOR)
@@ -126,8 +135,8 @@ def translate_subs(WAITING_NEW_FILE=5):
                     time.sleep(sleep_one)
                     vie = translators.translate_text(
                         combined_text,
-                        translator="baidu",
-                        from_language="zh",
+                        translator=translator,
+                        from_language=langcode,
                         to_language="vie",
                     )
                     expanded_vie = vie.split(SEPERATOR)
@@ -467,7 +476,7 @@ def main():
         metavar="Audio language",
         action="store",
         default=LANGUAGE,
-        help="Audio language",
+        help="Audio language in English, such as chinese, vietnamese, english, etc.",
     )
     args = parser.parse_args()
 

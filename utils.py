@@ -26,7 +26,7 @@ availableTranslationLanguages = [
     {"code": "zh", "name": "Chinese", "nativeName": "中文"},
     {"code": "cs", "name": "Czech", "nativeName": "česky"},
     {"code": "da", "name": "Danish", "nativeName": "dansk"},
-    {"code": "en-gb", "name": "English (British)", "nativeName": "English (UK)"},
+    {"code": "en", "name": "English", "nativeName": "English (UK)"},
     {"code": "fi", "name": "Finnish", "nativeName": "suomi"},
     {"code": "fr-ca", "name": "French (Canada)", "nativeName": "français canadien"},
     {"code": "iw", "name": "Hebrew", "nativeName": "עברית"},

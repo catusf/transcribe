@@ -2,107 +2,119 @@ import glob
 import json
 import os
 import re
-import shlex
 import shutil
 import subprocess
 import time
-from datetime import datetime
-from pathlib import Path
+
+# import shlex
+# from datetime import datetime
+# from pathlib import Path
+from urllib.parse import urlparse
 
 import pathvalidate
 import pinyin
 import pysrt
+import requests
 import speech_recognition as sr
 import translators
 from gooey import Gooey, GooeyParser
+
 from utils import languageEnglish2Code
 
 # Constants
 MEDIA_DIR = "./downloads"
 LANGUAGE = "chinese"
+DEST_LANGUAGE_1 = "vietnamese"
+DEST_LANGUAGE_2 = "english"
+
 URL_FILE = "./downloads/urls.txt"
 SUBTITLE_DIR = "./downloads/subs"
 TRANSLATOR_SERVICE = "baidu"  # Define the default translator service here
 
 
 def translate_subs(
-    WAITING_NEW_FILE=5, translator=TRANSLATOR_SERVICE, language=LANGUAGE
+    translator,
+    language,
+    dest_lang_1,
+    dest_lang_2,
+    WAITING_NEW_FILE=5,
 ):
     sub_files = []
 
-    sub_eng = ""
-    sub_vie = ""
-    sub_zho = ""
+    sub_dest1 = ""
+    sub_dest2 = ""
+    sub_src = ""
     sub_pin = ""
     sub_all = ""
 
-    if language not in languageEnglish2Code:
-        print(f"Cannot find language name: {language}")
+    if (
+        language not in languageEnglish2Code
+        or dest_lang_1 not in languageEnglish2Code
+        or dest_lang_2 not in languageEnglish2Code
+    ):
+        print("Cannot find language name(s)")
         exit(2)
 
-    langcode = languageEnglish2Code[language]
+    srclang = languageEnglish2Code[language]
+    destlang1 = languageEnglish2Code[dest_lang_1]
+    destlang2 = languageEnglish2Code[dest_lang_2]
 
-    patterns = f"{SUBTITLE_DIR}/*.zh.srt"
+    patterns = f"{SUBTITLE_DIR}/*.{srclang}.srt"
     for file in glob.glob(patterns):
-        sub_zho = file
-        # print(f'Chinese sub file: {sub_zho}')
-        path, filename = os.path.split(sub_zho)
+        sub_src = file
+        path, filename = os.path.split(sub_src)
         outpath = path
 
-        base_name = filename.split(".zh.srt")[0]
-        sub_eng = os.path.join(outpath, base_name + ".en.srt")
-        sub_vie = os.path.join(outpath, base_name + ".vi.srt")
-        sub_zho = os.path.join(outpath, base_name + ".zh.srt")
-        sub_pin = os.path.join(outpath, base_name + ".py.srt")
+        base_name = filename.split(f".{srclang}.srt")[0]
+        sub_dest1 = os.path.join(outpath, base_name + f".{destlang1}.srt")
+        sub_dest2 = os.path.join(outpath, base_name + f".{destlang2}.srt")
+        sub_src = os.path.join(outpath, base_name + f".{srclang}.srt")
+        sub_pin = (
+            os.path.join(outpath, base_name + ".py.srt") if srclang == "zh" else ""
+        )
         sub_all = os.path.join(outpath, base_name + ".srt")
 
         # Sets vars to None if files exist
         if not (
-            os.path.exists(sub_eng)
-            and os.path.exists(sub_vie)
-            and os.path.exists(sub_pin)
+            os.path.exists(sub_dest1)
+            and os.path.exists(sub_dest2)
+            and (not sub_pin or os.path.exists(sub_pin))
         ):
-            sub_files.append(sub_zho)
+            sub_files.append(sub_src)
             break
 
     if not sub_files:
         # print(f'{datetime.now()} > No subtitle files. Waiting for {WAITING_NEW_FILE}s')
         time.sleep(WAITING_NEW_FILE)
-
         return
 
     # Pattern for number
     NO_SUBTILE_TEXT = "^[0-9\n\r]"
 
-    # sub_zho = sub_files.pop()
-    print(f"Start translating {sub_zho}...")
-    with open(sub_zho, "r", encoding="utf-8") as file_zh:
-        text_zh = file_zh.readlines()
+    print(f"Start translating {sub_src}...")
+    with open(sub_src, "r", encoding="utf-8") as file_src:
+        text_src = file_src.readlines()
 
-        text_all = text_zh.copy()
-        text_pin = text_zh.copy()
-        text_eng = text_zh.copy()
-        text_vie = text_zh.copy()
+        text_all = text_src.copy()
+        text_pin = text_src.copy() if srclang == "zh" else []
+        text_dest1 = text_src.copy()
+        text_dest2 = text_src.copy()
 
         count = 1
         MAX_TRANS = 50
         SLEEP_ONE = 1
         SLEEP_BATCH = 60
-        SEPERATOR = "\n"
+        SEPARATOR = "\n"
 
         index_translate = []
         text_translate = []
 
-        for i, line in enumerate(text_zh):
+        for i, line in enumerate(text_src):
             if not re.match(NO_SUBTILE_TEXT, line):  # Timing and count lines
                 index_translate.append(i)
                 text_translate.append(line)
 
-        # _ = translators.preaccelerate_and_speedtest()  # Optional. Caching sessions in advance, which can help improve access speed.
-
         NORMAL_MAX_TRANS = 100
-        COMBINED_TRANS = NORMAL_MAX_TRANS
-
         TEXT_ITEMS = len(text_translate)
         batches = round((TEXT_ITEMS / NORMAL_MAX_TRANS * 1.0) + 0.5)
         remaining = len(text_translate)
@@ -115,33 +127,34 @@ def translate_subs(
                 b * NORMAL_MAX_TRANS : (b + 1) * NORMAL_MAX_TRANS
             ]
             length = len(text_range)
-
             combined_text = "".join(text_range)
-
             error_count = 0
             sleep = SLEEP_BATCH
             sleep_one = SLEEP_ONE
 
             while error_count < 5:
                 try:
-                    eng = translators.translate_text(
+                    translation_dest1 = translators.translate_text(
                         combined_text,
                         translator=translator,
-                        from_language=langcode,
-                        to_language="en",
+                        from_language=srclang,
+                        to_language=destlang1,
                     )
-                    expanded_eng = eng.split(SEPERATOR)
+                    expanded_dest1 = translation_dest1.split(SEPARATOR)
                     print(f"Sleeping {sleep_one}s")
                     time.sleep(sleep_one)
-                    vie = translators.translate_text(
+
+                    translation_dest2 = translators.translate_text(
                         combined_text,
                         translator=translator,
-                        from_language=langcode,
-                        to_language="vie",
+                        from_language=srclang,
+                        to_language=destlang2,
                     )
-                    expanded_vie = vie.split(SEPERATOR)
-                    pin = pinyin.get(combined_text, delimiter=" ")
-                    expanded_pin = pin.split(SEPERATOR)
+                    expanded_dest2 = translation_dest2.split(SEPARATOR)
+
+                    if srclang == "zh":
+                        pin = pinyin.get(combined_text, delimiter=" ")
+                        expanded_pin = pin.split(SEPARATOR)
 
                     break  # no need to loop when succeeds
                 except Exception as ex:
@@ -149,47 +162,39 @@ def translate_subs(
                     error_count += 1
                     print(f"Sleeping {sleep}s")
                     time.sleep(sleep)
-
                     sleep = sleep * 1.5
                     sleep_one = sleep * 1.5
-
-            # print(f"===={combined_text}\n----{pin}\n----{eng}\n---{vie}")
 
             count = 0
             for x in range(min(NORMAL_MAX_TRANS, TEXT_ITEMS - b * NORMAL_MAX_TRANS)):
                 y = index_translate[b * NORMAL_MAX_TRANS + x]
-                text_eng[y] = expanded_eng[count] + "\n"
-                text_vie[y] = expanded_vie[count] + "\n"
-                text_pin[y] = expanded_pin[count].strip() + "\n"
-                text_all[y] = text_zh[y] + text_pin[y] + text_vie[y]
+                text_dest1[y] = expanded_dest1[count] + "\n"
+                text_dest2[y] = expanded_dest2[count] + "\n"
+                if srclang == "zh":
+                    text_pin[y] = expanded_pin[count].strip() + "\n"
+                    text_all[y] = text_src[y] + text_pin[y] + text_dest2[y]
+                else:
+                    text_all[y] = text_src[y] + text_dest2[y]
                 count += 1
 
-        # if i and not i % MAX_TRANS:
-        #     time.sleep(SLEEP_BATCH)
-
-        with open(sub_eng, "w", encoding="utf-8") as file:
-            file.write("".join(text_eng))
-
-        with open(sub_vie, "w", encoding="utf-8") as file:
-            file.write("".join(text_vie))
-
-        with open(sub_pin, "w", encoding="utf-8") as file:
-            file.write("".join(text_pin))
-
+        with open(sub_dest1, "w", encoding="utf-8") as file:
+            file.write("".join(text_dest1))
+        with open(sub_dest2, "w", encoding="utf-8") as file:
+            file.write("".join(text_dest2))
+        if srclang == "zh":
+            with open(sub_pin, "w", encoding="utf-8") as file:
+                file.write("".join(text_pin))
         with open(sub_all, "w", encoding="utf-8") as file:
             file.write("".join(text_all))
 
-        print(f"Combined file written {sub_all}")
-
-        print(f"Waiting for new subtiles files in {SUBTITLE_DIR}...")
-
+    print(f"Combined file written {sub_all}")
+    print(f"Waiting for new subtitle files in {SUBTITLE_DIR}...")
     if not sub_files:
-        for file in glob.glob(f"{SUBTITLE_DIR}*.zh.srt"):
+        for file in glob.glob(f"{SUBTITLE_DIR}*.{srclang}.srt"):
             sub_files.append(file)
-
         sub_files.sort(reverse=True)
-
-        if not sub_files:  # Nothing to translate
+        if not sub_files:
+            # Nothing to translate
             return
 
 
@@ -287,11 +292,6 @@ def process_urls(file_path):
             file.write(lines[0])
         for url in remaining_urls:
             file.write(url + "\n")
-
-
-from urllib.parse import urlparse
-
-import requests
 
 
 def check_for_subtitles(subtitle_dir):
@@ -443,7 +443,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
 @Gooey(program_name="Media Transcriber")
 def main():
-    global MEDIA_DIR, SUBTITLE_DIR, TRANSLATOR_SERVICE, LANGUAGE
+    global MEDIA_DIR, SUBTITLE_DIR, TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2
 
     parser = GooeyParser(description="Transcriber Media & Translate Subtitles")
 
@@ -478,12 +478,31 @@ def main():
         default=LANGUAGE,
         help="Audio language in English, such as chinese, vietnamese, english, etc.",
     )
+
+    parser.add_argument(
+        "dest_language_1",
+        metavar="Destination language #1",
+        action="store",
+        default=DEST_LANGUAGE_1,
+        help="Translated languaged #1 for instance vietnamese",
+    )
+
+    parser.add_argument(
+        "dest_language_2",
+        metavar="Destination language #2",
+        action="store",
+        default=DEST_LANGUAGE_2,
+        help="Translated languaged #2 for instance english",
+    )
+
     args = parser.parse_args()
 
     MEDIA_DIR = args.media_dir
     SUBTITLE_DIR = args.subtitle_dir
     TRANSLATOR_SERVICE = args.translator_service
     LANGUAGE = args.language
+    DEST_LANGUAGE_1 = args.dest_language_1
+    DEST_LANGUAGE_2 = args.dest_language_2
 
     os.makedirs(SUBTITLE_DIR, exist_ok=True)
 
@@ -500,10 +519,12 @@ def main():
     while True:
         process_urls(URL_FILE)
         transcribe_media(5)
-        translate_subs(0)
+        translate_subs(
+            TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2, 0
+        )
 
 
 if __name__ == "__main__":
     main()
-    # transcribe_media(5)
-    # translate_subs(0)
+    # # transcribe_media(5)
+    # translate_subs(TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2, 0)

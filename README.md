@@ -20,11 +20,26 @@ python -m venv /path/to/env/name
 pip install -r requirements.txt
 ```
 
+# Non-windows installations
+
+- `requirements.txt` conatains 2 packages that are not available on non-Windows machines, please remove these two lines
+
+    - `wxPython`
+
+    - `Gooey`
 
 # Execute
 
-- Edit `run_transcribe_server.bat and `run_translate_subtitles_server.bat` to point to correct location of the `activate.bat` batch file installed by the above Python
+- First, copy videos to transcribe and translate to `./downloads/` folder
 
-- Copy videos to transcribe and translate to `./downloads` folder
+## Console 
 
-- Double click these two batch files in Explorer to start them (another way is to use the build .exe files to run)
+- Run `transcribe.py` 
+
+## GUI (on Windows only) 
+
+- Run `transcribe.pyw` 
+
+## Output
+
+- The output will be in `./downloads/subs/` folder

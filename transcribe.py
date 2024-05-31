@@ -17,7 +17,7 @@ import pysrt
 import requests
 import speech_recognition as sr
 import translators
-from gooey import Gooey, GooeyParser
+# from gooey import Gooey, GooeyParser
 
 from utils import languageEnglish2Code
 
@@ -31,6 +31,14 @@ URL_FILE = "./downloads/urls.txt"
 SUBTITLE_DIR = "./downloads/subs"
 TRANSLATOR_SERVICE = "baidu"  # Define the default translator service here
 
+def initial_checks():
+    os.makedirs(SUBTITLE_DIR, exist_ok=True)
+
+    if not os.path.exists(URL_FILE):
+        with open(URL_FILE, "w", encoding="utf-8") as file:
+            file.write(
+                "# URLs to download. If needed, add a tab character and the filename.\n"
+            )
 
 def translate_subs(
     translator,
@@ -445,6 +453,8 @@ def transcribe_media(WAITING_NEW_FILE=5):
 def main():
     global MEDIA_DIR, SUBTITLE_DIR, TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2
 
+    initial_checks()
+    
     print("Waiting for new media files...", flush=True)
     while True:
         process_urls(URL_FILE)
@@ -455,5 +465,4 @@ def main():
 
 
 if __name__ == "__main__":
-    transcribe_media(5)
-    translate_subs(TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2, 0)
+    main()

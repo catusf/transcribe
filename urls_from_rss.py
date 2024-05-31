@@ -34,14 +34,15 @@ def extract_titles_and_enclosure_urls_from_xml(url):
 
 
 # URL of the XML file
-url = "https://teatimechinese.libsyn.com/rss"
-
+# url = "https://teatimechinese.libsyn.com/rss" # TeaTime Chinese
+url = "https://feed.firstory.me/rss/user/ckq9bl3vd660p0805d1apvgrd"  # Learn Mandarin in Mandarin with Huimin
 # Extract titles and enclosure urls
 titles_and_enclosure_urls = extract_titles_and_enclosure_urls_from_xml(url)
 
 # Save titles and enclosure urls to urls.txt
 with open("./downloads/urls.txt", "w", encoding="utf-8") as file:
     file.write("# URLs to download. Add a tab and then the Filename if needed\n")
+    print(f"Found {len(titles_and_enclosure_urls)} urls")
     for title, enclosure_url in titles_and_enclosure_urls:
         file.write(f"{enclosure_url}\t{title}\n")
 

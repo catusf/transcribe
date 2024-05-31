@@ -52,7 +52,7 @@ def translate_subs(
         or dest_lang_1 not in languageEnglish2Code
         or dest_lang_2 not in languageEnglish2Code
     ):
-        print("Cannot find language name(s)")
+        print("Cannot find language name(s)", flush=True)
         exit(2)
 
     srclang = languageEnglish2Code[language]
@@ -91,7 +91,7 @@ def translate_subs(
     # Pattern for number
     NO_SUBTILE_TEXT = "^[0-9\n\r]"
 
-    print(f"Start translating {sub_src}...")
+    print(f"Start translating {sub_src}...", flush=True)
     with open(sub_src, "r", encoding="utf-8") as file_src:
         text_src = file_src.readlines()
 
@@ -141,7 +141,7 @@ def translate_subs(
                         to_language=destlang1,
                     )
                     expanded_dest1 = translation_dest1.split(SEPARATOR)
-                    print(f"Sleeping {sleep_one}s")
+                    print(f"Sleeping {sleep_one}s", flush=True)
                     time.sleep(sleep_one)
 
                     translation_dest2 = translators.translate_text(
@@ -158,9 +158,9 @@ def translate_subs(
 
                     break  # no need to loop when succeeds
                 except Exception as ex:
-                    print(ex)
+                    print(ex, flush=True)
                     error_count += 1
-                    print(f"Sleeping {sleep}s")
+                    print(f"Sleeping {sleep}s", flush=True)
                     time.sleep(sleep)
                     sleep = sleep * 1.5
                     sleep_one = sleep * 1.5
@@ -187,8 +187,8 @@ def translate_subs(
         with open(sub_all, "w", encoding="utf-8") as file:
             file.write("".join(text_all))
 
-    print(f"Combined file written {sub_all}")
-    print(f"Waiting for new subtitle files in {SUBTITLE_DIR}...")
+    print(f"Combined file written {sub_all}", flush=True)
+    print(f"Waiting for new subtitle files in {SUBTITLE_DIR}...", flush=True)
     if not sub_files:
         for file in glob.glob(f"{SUBTITLE_DIR}*.{srclang}.srt"):
             sub_files.append(file)
@@ -225,7 +225,7 @@ def download_file(url, filename):
     filepath = os.path.join(MEDIA_DIR, new_filename)
 
     if os.path.exists(filepath):
-        print(f"File {new_filename} already exists, skipping download.")
+        print(f"File {new_filename} already exists, skipping download.", flush=True)
         return False
 
     with open(filepath, "wb") as file:
@@ -243,7 +243,7 @@ def download_youtube_video(url):
         stream.download(filename=filename)
         return True
     else:
-        print(f"720p video not available for {url}")
+        print(f"720p video not available for {url}", flush=True)
         return False
 
 
@@ -269,7 +269,7 @@ def process_urls(file_path):
             url = parts[0].strip()
             filename = parts[1].strip()
 
-        print(f"Downloading {url}...")
+        print(f"Downloading {url}...", flush=True)
 
         try:
             if "youtube.com" in url or "youtu.be" in url:
@@ -284,7 +284,7 @@ def process_urls(file_path):
             if not success:
                 remaining_urls.append(line)
         except Exception as e:
-            print(f"Failed to download {url}: {e}")
+            print(f"Failed to download {url}: {e}", flush=True)
             remaining_urls.append(line)
 
     with open(file_path, "w") as file:
@@ -320,7 +320,7 @@ def movie_duration(input_file):
 
 def convert_media(input, output):
     if input == output:
-        print(f"Input and output are the same: {input}")
+        print(f"Input and output are the same: {input}", flush=True)
         return False
 
     cmd_str = f'ffmpeg -v quiet -y -i "{input}" "{output}"'
@@ -347,7 +347,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
                 shutil.move(media_file, new_media_file)
                 media_file = new_media_file
             except Exception as ex:
-                print(ex)
+                print(ex, flush=True)
 
         media_files.append(media_file)
 
@@ -357,7 +357,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
     media_file = media_files.pop()
 
-    print(f"Start processing {media_file}...")
+    print(f"Start processing {media_file}...", flush=True)
 
     outpath = SUBTITLE_DIR
     video_length = movie_duration(media_file)
@@ -376,7 +376,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     convert_media(media_file, audio_file)
     convert_media(media_file, mp3_file)
 
-    print(f"Audio file exported {audio_file}")
+    print(f"Audio file exported {audio_file}", flush=True)
 
     r = sr.Recognizer()
 
@@ -387,7 +387,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     languages = ["zh"]
     sub_files = [sub_zho]
 
-    print(f"Starting transcribing {audio_file}...")
+    print(f"Starting transcribing {audio_file}...", flush=True)
 
     start = time.time()
 
@@ -398,7 +398,8 @@ def transcribe_media(WAITING_NEW_FILE=5):
     end = time.time()
 
     print(
-        f"Time elapsed {end - start:.2f} - Video length {video_length:.2f} - relative speed {video_length/(end - start):.1f}x"
+        f"Time elapsed {end - start:.2f} - Video length {video_length:.2f} - relative speed {video_length/(end - start):.1f}x",
+        flush=True,
     )
 
     subs = pysrt.SubRipFile()
@@ -427,7 +428,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
         sub_idx += 1
 
     if not subs:
-        print(f"Subtitle empty {sub_zho}")
+        print(f"Subtitle empty {sub_zho}", flush=True)
 
     else:
         subs.save(sub_zho)
@@ -435,8 +436,8 @@ def transcribe_media(WAITING_NEW_FILE=5):
         with open(txt_sub, "w", encoding="utf-8") as file:
             file.write("\n".join(lines))
 
-        print(f"Subtitle written {sub_zho}")
-        print(f"Waiting for new video files in {MEDIA_DIR}...")
+        print(f"Subtitle written {sub_zho}", flush=True)
+        print(f"Waiting for new video files in {MEDIA_DIR}...", flush=True)
 
     shutil.move(media_file, new_media_file)
 
@@ -515,7 +516,7 @@ def main():
     # iteration_count = 0
     # max_iterations = 10  # or some appropriate number based on your requirements
 
-    print("Waiting for new media files...")
+    print("Waiting for new media files...", flush=True)
     while True:
         process_urls(URL_FILE)
         transcribe_media(5)

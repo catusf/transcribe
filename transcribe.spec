@@ -5,7 +5,7 @@ a = Analysis(
     ['transcribe.py'],
     pathex=[],
     binaries=[],
-    datas=[('./ffmpeg.exe', '.'), ('./ffprobe.exe', '.'), ('C:\\Python312\\envs\\videosubs\\Lib\\site-packages\\whisper\\assets\\', './whisper/assets/')],
+    datas=[('./downloads/README.txt', './downloads/'), ('./downloads/subs/README.txt', './downloads/subs/'), ('./ffmpeg.exe', '.'), ('./ffprobe.exe', '.'), ('C:\\Python312\\envs\\videosubs\\Lib\\site-packages\\whisper\\assets\\', './whisper/assets/')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

@@ -1,10 +1,12 @@
 from transcribe import *
 
+from gooey import Gooey, GooeyParser
+
 
 @Gooey(program_name="Media Transcriber")
 def main():
     global MEDIA_DIR, SUBTITLE_DIR, TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2
-    
+
     initial_checks()
 
     parser = GooeyParser(description="Transcriber Media & Translate Subtitles")

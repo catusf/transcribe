@@ -29,7 +29,7 @@ DEST_LANGUAGE_2 = "english"
 
 URL_FILE = "./downloads/urls.txt"
 SUBTITLE_DIR = "./downloads/subs"
-TRANSLATOR_SERVICE = "baidu"  # Define the default translator service here
+TRANSLATOR_SERVICE = "google"  # Define the default translator service here
 
 def initial_checks():
     os.makedirs(SUBTITLE_DIR, exist_ok=True)

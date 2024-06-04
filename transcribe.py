@@ -1,25 +1,15 @@
 import glob
-import json
 import os
 import re
 import shutil
-import subprocess
 import time
 
-# import shlex
-# from datetime import datetime
-# from pathlib import Path
-from urllib.parse import urlparse
-
-import pathvalidate
 import pinyin
 import pysrt
-import requests
 import speech_recognition as sr
 import translators
-# from gooey import Gooey, GooeyParser
 
-from utils import languageEnglish2Code
+from utils import *
 
 # Constants
 MEDIA_DIR = "./downloads"
@@ -31,6 +21,7 @@ URL_FILE = "./downloads/urls.txt"
 SUBTITLE_DIR = "./downloads/subs"
 TRANSLATOR_SERVICE = "google"  # Define the default translator service here
 
+
 def initial_checks():
     os.makedirs(SUBTITLE_DIR, exist_ok=True)
 
@@ -39,6 +30,7 @@ def initial_checks():
             file.write(
                 "# URLs to download. If needed, add a tab character and the filename.\n"
             )
+
 
 def translate_subs(
     translator,
@@ -206,55 +198,6 @@ def translate_subs(
             return
 
 
-def movie_resolution(input_file):
-    cmds = f"ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 -print_format json -i".split(
-        " "
-    )
-    cmds.append(f"{input_file}")
-    metadata = subprocess.check_output(cmds)
-    metadata = json.loads(metadata)
-    stream0 = metadata["streams"][0]
-    width, height = stream0["width"], stream0["height"]
-    return width, height
-
-
-def clean_filename(name):
-    return pathvalidate.sanitize_filename(name)
-
-
-def download_file(url, filename):
-    response = requests.get(url, stream=True)
-    parsed_url = urlparse(url)
-    original_filename = os.path.basename(parsed_url.path)
-    extension = os.path.splitext(original_filename)[1]
-
-    sanitized_filename = pathvalidate.sanitize_filename(filename)
-    new_filename = sanitized_filename + extension
-    filepath = os.path.join(MEDIA_DIR, new_filename)
-
-    if os.path.exists(filepath):
-        print(f"File {new_filename} already exists, skipping download.", flush=True)
-        return False
-
-    with open(filepath, "wb") as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
-
-    return True
-
-
-def download_youtube_video(url):
-    yt = YouTube(url)
-    stream = yt.streams.filter(res="720p", file_extension="mp4").first()
-    if stream:
-        filename = clean_filename(yt.title) + ".mp4"
-        stream.download(filename=filename)
-        return True
-    else:
-        print(f"720p video not available for {url}", flush=True)
-        return False
-
-
 def process_urls(file_path):
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
@@ -286,7 +229,7 @@ def process_urls(file_path):
                 if not filename:
                     filename = os.path.basename(url)
                 filename = clean_filename(filename)
-                download_file(url, filename)
+                download_file(url, filename, MEDIA_DIR)
                 success = True
 
             if not success:
@@ -311,30 +254,6 @@ def has_valid_extension(filename):
     valid_extensions = {".mp4", ".mp3", ".m4a"}
     file_extension = os.path.splitext(filename)[1].lower()
     return file_extension in valid_extensions
-
-
-def movie_duration(input_file):
-    cmds = f"ffprobe -v quiet -print_format json -show_format -hide_banner -i".split(
-        " "
-    )
-    cmds.append(f"{input_file}")
-    metadata = subprocess.check_output(cmds)
-
-    metadata = json.loads(metadata)
-    length = float(metadata["format"]["duration"])
-
-    return length
-
-
-def convert_media(input, output):
-    if input == output:
-        print(f"Input and output are the same: {input}", flush=True)
-        return False
-
-    cmd_str = f'ffmpeg -v quiet -y -i "{input}" "{output}"'
-
-    os.system(cmd_str)
-    return True
 
 
 def transcribe_media(WAITING_NEW_FILE=5):
@@ -379,7 +298,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     sub_zho = base_path + ".zh.srt"
     txt_sub = base_path + ".txt"
 
-    no_text = "^[0-9\n\r]"
+    # no_text = "^[0-9\n\r]"
 
     convert_media(media_file, audio_file)
     convert_media(media_file, mp3_file)
@@ -391,9 +310,9 @@ def transcribe_media(WAITING_NEW_FILE=5):
     with sr.AudioFile(audio_file) as source:
         audio_text = r.record(source)
 
-    translations = [False]
-    languages = ["zh"]
-    sub_files = [sub_zho]
+    # translations = [False]
+    # languages = ["zh"]
+    # sub_files = [sub_zho]
 
     print(f"Starting transcribing {audio_file}...", flush=True)
 
@@ -418,8 +337,8 @@ def transcribe_media(WAITING_NEW_FILE=5):
     for i in range(item_count):
         start_time = result["segments"][i]["start"]
         end_time = result["segments"][i]["end"]
-        duration = end_time - start_time
-        timestamp = f"{start_time:.3f} - {end_time:.3f}"
+        # duration = end_time - start_time
+        # timestamp = f"{start_time:.3f} - {end_time:.3f}"
         text = result["segments"][i]["text"]
 
         sub = pysrt.SubRipItem(
@@ -454,7 +373,7 @@ def main():
     global MEDIA_DIR, SUBTITLE_DIR, TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2
 
     initial_checks()
-    
+
     print("Waiting for new media files...", flush=True)
     while True:
         process_urls(URL_FILE)

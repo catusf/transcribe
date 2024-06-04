@@ -1,1 +1,0 @@
-cmd.exe /k "c:\Python312\envs\videosubs\Scripts\activate.bat && py_transcribe.bat"

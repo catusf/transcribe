@@ -42,17 +42,17 @@ def initial_checks():
 CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
 
 
-def load_cache():
+def load_translation_cache():
     if os.path.exists(CACHE_FILE):
         with open(CACHE_FILE, "r", encoding="utf-8") as file:
             return json.load(file)
     else:
-        save_cache({})
+        save_translation_cache({})
 
     return {}
 
 
-def save_cache(cache):
+def save_translation_cache(cache):
     with open(CACHE_FILE, "w", encoding="utf-8") as file:
         json.dump(cache, file, ensure_ascii=False, indent=4)
 
@@ -61,14 +61,14 @@ def translate_with_cache(text, translator, srclang, destlang, cache):
     cache_key = f"{srclang}_{destlang}_{text}"
 
     if cache_key in cache:
-        print("Using cached translation for:", text)
-        return cache[cache_key]
+        # print("Using cached translation for:", text)
+        return True, cache[cache_key]
     else:
         translation = translators.translate_text(
             text, translator=translator, from_language=srclang, to_language=destlang
         )
         cache[cache_key] = translation
-        return translation
+        return False, translation
 
 
 def translate_subs(
@@ -131,7 +131,7 @@ def translate_subs(
     NO_SUBTILE_TEXT = "^[0-9\n\r]"
 
     # Load cache once
-    translation_cache = load_cache()
+    translation_cache = load_translation_cache()
 
     print(f"Start translating {sub_src}...", flush=True)
     with open(sub_src, "r", encoding="utf-8") as file_src:
@@ -143,7 +143,7 @@ def translate_subs(
         text_dest2 = text_src.copy()
 
         count = 1
-        MAX_TRANS = 50
+        # MAX_TRANS = 50
         SLEEP_ONE = 1
         SLEEP_BATCH = 60
         SEPARATOR = "\n"
@@ -165,10 +165,10 @@ def translate_subs(
             text_range = text_translate[
                 b * NORMAL_MAX_TRANS : (b + 1) * NORMAL_MAX_TRANS
             ]
-            index_range = index_translate[
-                b * NORMAL_MAX_TRANS : (b + 1) * NORMAL_MAX_TRANS
-            ]
-            length = len(text_range)
+            # index_range = index_translate[
+            #     b * NORMAL_MAX_TRANS : (b + 1) * NORMAL_MAX_TRANS
+            # ]
+            # length = len(text_range)
             combined_text = "".join(text_range)
             error_count = 0
             sleep = SLEEP_BATCH
@@ -176,15 +176,17 @@ def translate_subs(
 
             while error_count < 5:
                 try:
-                    translation_dest1 = translate_with_cache(
+                    use_cache, translation_dest1 = translate_with_cache(
                         combined_text, translator, srclang, destlang1, translation_cache
                     )
 
                     expanded_dest1 = translation_dest1.split(SEPARATOR)
-                    print(f"Sleeping {sleep_one}s", flush=True)
-                    time.sleep(sleep_one)
 
-                    translation_dest2 = translate_with_cache(
+                    if not use_cache:
+                        print(f"Sleeping {sleep_one}s", flush=True)
+                        time.sleep(sleep_one)
+
+                    use_cache, translation_dest2 = translate_with_cache(
                         combined_text,
                         translator,
                         srclang,
@@ -228,7 +230,7 @@ def translate_subs(
         with open(sub_all, "w", encoding="utf-8") as file:
             file.write("".join(text_all))
 
-    save_cache(translation_cache)
+    save_translation_cache(translation_cache)
 
     print(f"Combined file written {sub_all}", flush=True)
     print(f"Waiting for new subtitle files in {SUBTITLE_DIR}...", flush=True)
@@ -422,7 +424,7 @@ def main():
     print("Waiting for new media files...", flush=True)
     while True:
         process_urls(URL_FILE)
-        transcribe_media(5)
+        transcribe_media(1)
         translate_subs(
             TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2, 0
         )

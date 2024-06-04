@@ -24,12 +24,24 @@ def download_youtube_video(url):
         return False
 
 
+def wrap_file_name(filename):
+    return '"' + filename + '"'
+
+
 def convert_media(input_file, output_file):
     # Get the path to the ffmpeg executable in the ./bin folder
     ff_path = os.path.join(".", "bin", "ffmpeg")
 
     # Construct the command to convert the media file
-    command = [ff_path, "-i", input_file, output_file]
+    command = [
+        ff_path,
+        "-v",
+        "quiet",
+        "-y",
+        "-i",
+        input_file,
+        output_file,
+    ]
 
     try:
         # Run the command using subprocess

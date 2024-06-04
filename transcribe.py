@@ -9,6 +9,13 @@ import pysrt
 import speech_recognition as sr
 import translators
 
+from opencc import OpenCC
+
+
+import json
+import os
+
+
 from utils import *
 
 # Constants
@@ -30,6 +37,38 @@ def initial_checks():
             file.write(
                 "# URLs to download. If needed, add a tab character and the filename.\n"
             )
+
+
+CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
+
+
+def load_cache():
+    if os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, "r", encoding="utf-8") as file:
+            return json.load(file)
+    else:
+        save_cache({})
+
+    return {}
+
+
+def save_cache(cache):
+    with open(CACHE_FILE, "w", encoding="utf-8") as file:
+        json.dump(cache, file, ensure_ascii=False, indent=4)
+
+
+def translate_with_cache(text, translator, srclang, destlang, cache):
+    cache_key = f"{srclang}_{destlang}_{text}"
+
+    if cache_key in cache:
+        print("Using cached translation for:", text)
+        return cache[cache_key]
+    else:
+        translation = translators.translate_text(
+            text, translator=translator, from_language=srclang, to_language=destlang
+        )
+        cache[cache_key] = translation
+        return translation
 
 
 def translate_subs(
@@ -91,6 +130,9 @@ def translate_subs(
     # Pattern for number
     NO_SUBTILE_TEXT = "^[0-9\n\r]"
 
+    # Load cache once
+    translation_cache = load_cache()
+
     print(f"Start translating {sub_src}...", flush=True)
     with open(sub_src, "r", encoding="utf-8") as file_src:
         text_src = file_src.readlines()
@@ -134,21 +176,20 @@ def translate_subs(
 
             while error_count < 5:
                 try:
-                    translation_dest1 = translators.translate_text(
-                        combined_text,
-                        translator=translator,
-                        from_language=srclang,
-                        to_language=destlang1,
+                    translation_dest1 = translate_with_cache(
+                        combined_text, translator, srclang, destlang1, translation_cache
                     )
+
                     expanded_dest1 = translation_dest1.split(SEPARATOR)
                     print(f"Sleeping {sleep_one}s", flush=True)
                     time.sleep(sleep_one)
 
-                    translation_dest2 = translators.translate_text(
+                    translation_dest2 = translate_with_cache(
                         combined_text,
-                        translator=translator,
-                        from_language=srclang,
-                        to_language=destlang2,
+                        translator,
+                        srclang,
+                        destlang2,
+                        translation_cache,
                     )
                     expanded_dest2 = translation_dest2.split(SEPARATOR)
 
@@ -186,6 +227,8 @@ def translate_subs(
                 file.write("".join(text_pin))
         with open(sub_all, "w", encoding="utf-8") as file:
             file.write("".join(text_all))
+
+    save_cache(translation_cache)
 
     print(f"Combined file written {sub_all}", flush=True)
     print(f"Waiting for new subtitle files in {SUBTITLE_DIR}...", flush=True)
@@ -261,6 +304,9 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
     process_urls(f"{MEDIA_DIR}/urls.txt")
 
+    if LANGUAGE == "zh":
+        converter = OpenCC("t2s")
+
     for media_file in (
         glob.glob(f"{MEDIA_DIR}/*.mp4")
         + glob.glob(f"{MEDIA_DIR}/*.mp3")
@@ -310,10 +356,6 @@ def transcribe_media(WAITING_NEW_FILE=5):
     with sr.AudioFile(audio_file) as source:
         audio_text = r.record(source)
 
-    # translations = [False]
-    # languages = ["zh"]
-    # sub_files = [sub_zho]
-
     print(f"Starting transcribing {audio_file}...", flush=True)
 
     start = time.time()
@@ -340,6 +382,9 @@ def transcribe_media(WAITING_NEW_FILE=5):
         # duration = end_time - start_time
         # timestamp = f"{start_time:.3f} - {end_time:.3f}"
         text = result["segments"][i]["text"]
+
+        if LANGUAGE == "zh":
+            text = converter.convert(text)
 
         sub = pysrt.SubRipItem(
             index=sub_idx,

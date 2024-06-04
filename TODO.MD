@@ -1,7 +1,7 @@
 # Todo List
 [X] Make ffmpeg run from a sub folder
 [X] Add config for languages to translate
-[ ] Cache the translations: By translator => language => phrases to json files 
+[X] Cache the translations: By translator => language => phrases to json files 
 [X] Add an UI Gooey to the make it easer to use
 [X] Add and monitor url files: 	If youtube.com => use PyTube; 	Else download as normal
 [X] Handle the case downloads folder and urls.txt dont exist

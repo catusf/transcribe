@@ -28,6 +28,64 @@ def wrap_file_name(filename):
     return '"' + filename + '"'
 
 
+def make_black_video_file(input_file, output_file, media_length):
+    ff_path = os.path.join(".", "bin", "ffmpeg")
+
+    command = [
+        ff_path,
+        "-v",
+        "quiet",  # No details shown
+        "-y",  # Overwrite output files without asking
+        "-f",
+        "lavfi",  # Use lavfi to generate a video stream
+        "-i",
+        f"color=c=black:s=640x360:d={media_length}",  # Create a black video of 10 seconds, change the duration as needed
+        "-i",
+        input_file,  # Input MP3 file
+        "-crf",
+        "28",  # Lower quality for smaller file size (range 0-51, where 0 is lossless)
+        "-c:v",
+        "libx264",  # Use the H.264 codec for video
+        "-c:a",
+        "copy",  # Use the AAC codec for audio
+        "-shortest",  # Ensure the video is the same length as the audio
+        output_file,
+    ]
+
+    try:
+        # Run the command using subprocess
+        subprocess.run(command, check=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        return False
+
+
+def create_videos_for_all_mp3s(folder_path):
+    """
+    Create black video files for all MP3 files in a folder.
+
+    Parameters:
+    folder_path (str): Path to the folder containing MP3 files.
+    """
+    # Ensure the folder path is valid
+    if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
+        print("The specified folder path does not exist or is not a directory.")
+        return
+
+    # Iterate over all files in the folder
+    for filename in os.listdir(folder_path):
+        if filename.lower().endswith(".mp3"):
+            mp3_file_path = os.path.join(folder_path, filename)
+            output_video_path = os.path.join(
+                folder_path, f"{os.path.splitext(filename)[0]}.mp4"
+            )
+            json_meta = get_media_metadata(mp3_file_path)
+            media_length = determine_media_length(json_meta)
+            print(f"Processing {mp3_file_path}...")
+            make_black_video_file(mp3_file_path, output_video_path, media_length)
+            print(f"Created video: {output_video_path}")
+
+
 def convert_media(input_file, output_file):
     # Get the path to the ffmpeg executable in the ./bin folder
     ff_path = os.path.join(".", "bin", "ffmpeg")
@@ -51,37 +109,141 @@ def convert_media(input_file, output_file):
         return False
 
 
-def movie_resolution(input_file):
+def get_video_dimensions(json_meta):
+    """
+    Get the width and height of a video file from its metadata.
 
+    Args:
+        json_meta (dict): JSON metadata of the media file.
+
+    Returns:
+        tuple: A tuple containing:
+            - width (int): Width of the video.
+            - height (int): Height of the video.
+
+        Returns (None, None) if no video stream is found.
+    """
+    streams = json_meta.get("streams", [])
+
+    for stream in streams:
+        if stream["codec_type"] == "video":
+            width = stream.get("width")
+            height = stream.get("height")
+            return width, height
+
+    return None, None  # No video stream found
+
+
+def get_media_metadata(input_file):
     ff_path = os.path.join(".", "bin", "ffprobe")
 
-    command = [ff_path, "-i", input_file]
-    command.extend(
-        "-v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 -print_format json".split(
-            " "
-        )
-    )
+    command = [
+        ff_path,
+        "-i",
+        input_file,
+        "-v",
+        "quiet",
+        "-print_format",
+        "json",
+        "-show_format",
+        "-show_streams",
+        "-hide_banner",
+    ]
 
-    metadata = subprocess.check_output(command)
-    metadata = json.loads(metadata)
-    stream0 = metadata["streams"][0]
-    width, height = stream0["width"], stream0["height"]
-    return width, height
-
-
-def movie_duration(input_file):
-    ff_path = os.path.join(".", "bin", "ffprobe")
-
-    command = [ff_path, "-i", input_file]
-
-    command.extend("-v quiet -print_format json -show_format -hide_banner".split(" "))
+    # command.extend(
+    #     "-v quiet -print_format json -show_format -show_streams -hide_banner".split(" ")
+    # )
 
     metadata = subprocess.check_output(command)
 
-    metadata = json.loads(metadata)
-    length = float(metadata["format"]["duration"])
+    json_meta = json.loads(metadata)
 
-    return length
+    return json_meta
+
+
+import os
+
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a", ".wma"}
+
+VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".flv", ".wmv", ".webm", ".m4v"}
+
+MEDIA_EXTENSIONS = AUDIO_EXTENSIONS | VIDEO_EXTENSIONS
+
+
+def get_media_type(file_path):
+    """
+    Determine the media type of a file based on its extension.
+
+    This function checks the file extension of the given file path and
+    categorizes it as an audio file, a video file, or neither. It returns
+    an integer code corresponding to the type of the file:
+
+    - 0: The file is neither an audio nor a video file.
+    - 1: The file is an audio file.
+    - 2: The file is a video file.
+
+    Parameters:
+    file_path (str): The file path or name for which the media type is to be determined.
+
+    Returns:
+    int: An integer code indicating the media type of the file.
+         0 if the file is neither an audio nor a video file.
+         1 if the file is an audio file.
+         2 if the file is a video file.
+
+    Example:
+    >>> get_media_type("example.mp3")
+    1
+    >>> get_media_type("example.mp4")
+    2
+    >>> get_media_type("example.txt")
+    0
+    """
+    # Define audio and video file extensions
+
+    # Extract the file extension
+    file_extension = os.path.splitext(file_path)[1].lower()
+
+    # Determine the media type
+    if file_extension in AUDIO_EXTENSIONS:
+        return 1  # Audio file
+    elif file_extension in VIDEO_EXTENSIONS:
+        return 2  # Video file
+    else:
+        return 0  # Not a media file
+
+
+def determine_media_length(json_meta):
+    return float(json_meta["format"]["duration"])
+
+
+def determine_media_type(json_meta):
+    """
+    Determine if the media file is audio-only, video-only, or contains both.
+
+    Args:
+        json_meta (dict): JSON metadata of the media file.
+
+    Returns:
+        int:
+            - 4 if the file contains both video and audio.
+            - 2 if the file is video-only.
+            - 1 if the file is audio-only.
+            - 0 if the file has neither video nor audio streams.
+    """
+    streams = json_meta.get("streams", [])
+
+    has_video = any(stream["codec_type"] == "video" for stream in streams)
+    has_audio = any(stream["codec_type"] == "audio" for stream in streams)
+
+    if has_video and has_audio:
+        return 4  # File contains both video and audio
+    elif has_video:
+        return 2  # File is video-only
+    elif has_audio:
+        return 1  # File is audio-only
+    else:
+        return 0  # File has neither video nor audio streams
 
 
 def download_file(url, filename, folder):

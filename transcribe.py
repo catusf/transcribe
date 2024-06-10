@@ -19,8 +19,8 @@ LANGUAGE = "chinese"
 DEST_LANGUAGE_1 = "vietnamese"
 DEST_LANGUAGE_2 = "english"
 
-URL_FILE = "./downloads/urls.txt"
-SUBTITLE_DIR = "./downloads/subs"
+URL_FILE = ".\\downloads\\urls.txt"
+SUBTITLE_DIR = ".\\downloads\\subs"
 TRANSLATOR_SERVICE = "google"  # Define the default translator service here
 
 CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
@@ -163,7 +163,7 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
                     expanded_dest1 = translation_dest1.split(SEPARATOR)
 
                     if not use_cache:
-                        print(f"Sleeping {sleep_one}s", flush=True)
+                        print(f"\tSleeping {sleep_one}s", flush=True)
                         time.sleep(sleep_one)
 
                     use_cache, translation_dest2 = translate_with_cache(
@@ -179,7 +179,7 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
                 except Exception as ex:
                     print(ex, flush=True)
                     error_count += 1
-                    print(f"Sleeping {sleep}s", flush=True)
+                    print(f"\tSleeping {sleep}s", flush=True)
                     time.sleep(sleep)
                     sleep = sleep * 1.5
                     sleep_one = sleep * 1.5
@@ -208,7 +208,7 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
 
     save_translation_cache(translation_cache)
 
-    print(f"Combined file written {sub_all}", flush=True)
+    print(f"\tCombined file written {sub_all}", flush=True)
     print(f"Waiting for new subtitle files in {SUBTITLE_DIR}...", flush=True)
     if not sub_files:
         for file in glob.glob(f"{SUBTITLE_DIR}*.{srclang}.srt"):
@@ -280,10 +280,9 @@ def has_valid_extension(filename):
     """
     Check if a filename has a valid media extension.
     """
-    valid_extensions = {".mp4", ".mp3", ".m4a"}
 
     file_extension = os.path.splitext(filename)[1].lower()
-    return file_extension in valid_extensions
+    return file_extension in MEDIA_EXTENSIONS
 
 
 def transcribe_media(WAITING_NEW_FILE=5):
@@ -323,52 +322,64 @@ def transcribe_media(WAITING_NEW_FILE=5):
     print(f"Start processing {media_file.removeprefix(MEDIA_DIR)}...", flush=True)
 
     outpath = SUBTITLE_DIR
-    video_length = movie_duration(media_file)
+    json_meta = get_media_metadata(media_file)
+    media_length = determine_media_length(json_meta)
+    media_type = get_media_type(media_file)
+
+    print(f"\t*** Video length {format_duration(media_length)}", flush=True)
+
     path, filename = os.path.split(media_file)
     base_name, extension = os.path.splitext(filename)
     base_path = os.path.join(outpath, base_name)
     new_media_file = os.path.join(outpath, base_name) + extension
 
-    audio_file = base_path + ".wav"
+    wav_file = base_path + ".wav"
+    mp4_file = base_path + ".mp4"
     mp3_file = base_path + ".mp3"
     sub_zho = base_path + ".zh.srt"
     txt_sub = base_path + ".txt"
 
-    if not convert_media(media_file, audio_file):
+    if not convert_media(media_file, wav_file):
         print(f"\tError during conversion: {media_file.removeprefix(MEDIA_DIR)}")
     else:
         print(
-            f"\tConversion successful: {media_file.removeprefix(MEDIA_DIR)} -> {audio_file.removeprefix(MEDIA_DIR)}"
+            f"\tConversion successful: {media_file.removeprefix(MEDIA_DIR)} -> {wav_file.removeprefix(MEDIA_DIR)}"
         )
 
-    if not convert_media(media_file, mp3_file):
-        print(f"\tError during conversion: {media_file.removeprefix(MEDIA_DIR)}")
-    else:
-        print(
-            f"\tConversion successful: {media_file.removeprefix(MEDIA_DIR)} -> {mp3_file.removeprefix(MEDIA_DIR)}"
-        )
+    if media_type == 2:  # Video file, then creates an audio fle
+        if not convert_media(media_file, mp3_file):
+            print(f"\tError during conversion: {media_file.removeprefix(MEDIA_DIR)}")
+        else:
+            print(
+                f"\tConversion successful: {media_file.removeprefix(MEDIA_DIR)} -> {mp3_file.removeprefix(MEDIA_DIR)}"
+            )
+    elif media_type == 1:  # Audio file, then creates an video fle
+        if not make_black_video_file(media_file, mp4_file, media_length):
+            print(f"\tError during conversion: {media_file.removeprefix(MEDIA_DIR)}")
+        else:
+            print(
+                f"\tConversion successful: {media_file.removeprefix(MEDIA_DIR)} -> {mp4_file.removeprefix(MEDIA_DIR)}"
+            )
 
     # print(f"\tAudio file exported {audio_file.removeprefix(MEDIA_DIR)}", flush=True)
 
     r = sr.Recognizer()
 
-    with sr.AudioFile(audio_file) as source:
+    with sr.AudioFile(wav_file) as source:
         audio_text = r.record(source)
 
-    print(
-        f"\tStarting transcribing {audio_file.removeprefix(MEDIA_DIR)}...", flush=True
-    )
+    print(f"\tStarting transcribing {wav_file.removeprefix(MEDIA_DIR)}...", flush=True)
 
     start = time.time()
 
     result = r.recognize_whisper(
         audio_text, language=LANGUAGE, show_dict=True, word_timestamps=True
     )
-    os.remove(audio_file)
+    os.remove(wav_file)
     end = time.time()
 
     print(
-        f"\t*** Time elapsed {format_duration(end - start)} - Video length {format_duration(video_length)} - relative speed {video_length/(end - start):.1f}x",
+        f"\t*** Time elapsed {format_duration(end - start)} - Video length {format_duration(media_length)} - relative speed {media_length/(end - start):.1f}x",
         flush=True,
     )
 

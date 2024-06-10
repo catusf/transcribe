@@ -24,6 +24,11 @@ def convert_traditional_to_simplified(input_dir, output_dir):
 
             # Convert to simplified Chinese
             simplified_text = converter.convert(traditional_text)
+            simplified_text = simplified_text.replace("v̌", "ǚ")
+
+            if simplified_text == traditional_text:
+                print("*** No changes")
+                continue
 
             # Define the output file path
             output_filepath = os.path.join(output_dir, filename)
@@ -38,6 +43,6 @@ def convert_traditional_to_simplified(input_dir, output_dir):
 
 
 # Example usage
-input_directory = "./downloads/traditional"
-output_directory = "./downloads/traditional"
+input_directory = "./downloads/subs"
+output_directory = "./downloads/subs"
 convert_traditional_to_simplified(input_directory, output_directory)

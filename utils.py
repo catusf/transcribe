@@ -46,9 +46,9 @@ def convert_media(input_file, output_file):
     try:
         # Run the command using subprocess
         subprocess.run(command, check=True)
-        print(f"Conversion successful: {input_file} -> {output_file}")
+        return True
     except subprocess.CalledProcessError as e:
-        print(f"Error during conversion: {e}")
+        return False
 
 
 def movie_resolution(input_file):
@@ -103,6 +103,23 @@ def download_file(url, filename, folder):
             file.write(chunk)
 
     return True
+
+
+def format_duration(seconds):
+    # Calculate hours, minutes, seconds, and milliseconds
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    remaining_seconds = seconds % 60
+    milliseconds = int((remaining_seconds - int(remaining_seconds)) * 1000)
+
+    # Format with leading zeros
+    formatted_time = (
+        f"{hours:02}:{minutes:02}:{int(remaining_seconds):02}.{milliseconds:03}"
+        if hours
+        else f"{minutes:02}:{int(remaining_seconds):02}.{milliseconds:03}"
+    )
+
+    return formatted_time
 
 
 availableTranslationLanguages = [

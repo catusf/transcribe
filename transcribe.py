@@ -3,18 +3,13 @@ import os
 import re
 import shutil
 import time
+import json
 
 import pinyin
 import pysrt
 import speech_recognition as sr
 import translators
-
 from opencc import OpenCC
-
-
-import json
-import os
-
 
 from utils import *
 
@@ -28,10 +23,14 @@ URL_FILE = "./downloads/urls.txt"
 SUBTITLE_DIR = "./downloads/subs"
 TRANSLATOR_SERVICE = "google"  # Define the default translator service here
 
+CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
+
 
 def initial_checks():
+    """
+    Perform initial setup checks and create necessary directories and files.
+    """
     os.makedirs(SUBTITLE_DIR, exist_ok=True)
-
     if not os.path.exists(URL_FILE):
         with open(URL_FILE, "w", encoding="utf-8") as file:
             file.write(
@@ -39,29 +38,32 @@ def initial_checks():
             )
 
 
-CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
-
-
 def load_translation_cache():
+    """
+    Load translation cache from a JSON file.
+    """
     if os.path.exists(CACHE_FILE):
         with open(CACHE_FILE, "r", encoding="utf-8") as file:
             return json.load(file)
     else:
         save_translation_cache({})
-
-    return {}
+        return {}
 
 
 def save_translation_cache(cache):
+    """
+    Save translation cache to a JSON file.
+    """
     with open(CACHE_FILE, "w", encoding="utf-8") as file:
         json.dump(cache, file, ensure_ascii=False, indent=4)
 
 
 def translate_with_cache(text, translator, srclang, destlang, cache):
+    """
+    Translate text with caching to avoid repeated translations.
+    """
     cache_key = f"{srclang}_{destlang}_{text}"
-
     if cache_key in cache:
-        # print("Using cached translation for:", text)
         return True, cache[cache_key]
     else:
         translation = translators.translate_text(
@@ -71,20 +73,12 @@ def translate_with_cache(text, translator, srclang, destlang, cache):
         return False, translation
 
 
-def translate_subs(
-    translator,
-    language,
-    dest_lang_1,
-    dest_lang_2,
-    WAITING_NEW_FILE=5,
-):
+def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_FILE=5):
+    """
+    Translate subtitle files from source language to destination languages.
+    """
     sub_files = []
-
-    sub_dest1 = ""
-    sub_dest2 = ""
-    sub_src = ""
-    sub_pin = ""
-    sub_all = ""
+    sub_dest1, sub_dest2, sub_src, sub_pin, sub_all = "", "", "", "", ""
 
     if (
         language not in languageEnglish2Code
@@ -107,13 +101,11 @@ def translate_subs(
         base_name = filename.split(f".{srclang}.srt")[0]
         sub_dest1 = os.path.join(outpath, base_name + f".{destlang1}.srt")
         sub_dest2 = os.path.join(outpath, base_name + f".{destlang2}.srt")
-        sub_src = os.path.join(outpath, base_name + f".{srclang}.srt")
         sub_pin = (
             os.path.join(outpath, base_name + ".py.srt") if srclang == "zh" else ""
         )
         sub_all = os.path.join(outpath, base_name + ".srt")
 
-        # Sets vars to None if files exist
         if not (
             os.path.exists(sub_dest1)
             and os.path.exists(sub_dest2)
@@ -123,14 +115,10 @@ def translate_subs(
             break
 
     if not sub_files:
-        # print(f'{datetime.now()} > No subtitle files. Waiting for {WAITING_NEW_FILE}s')
         time.sleep(WAITING_NEW_FILE)
         return
 
-    # Pattern for number
     NO_SUBTILE_TEXT = "^[0-9\n\r]"
-
-    # Load cache once
     translation_cache = load_translation_cache()
 
     print(f"Start translating {sub_src}...", flush=True)
@@ -142,8 +130,6 @@ def translate_subs(
         text_dest1 = text_src.copy()
         text_dest2 = text_src.copy()
 
-        count = 1
-        # MAX_TRANS = 50
         SLEEP_ONE = 1
         SLEEP_BATCH = 60
         SEPARATOR = "\n"
@@ -152,23 +138,18 @@ def translate_subs(
         text_translate = []
 
         for i, line in enumerate(text_src):
-            if not re.match(NO_SUBTILE_TEXT, line):  # Timing and count lines
+            if not re.match(NO_SUBTILE_TEXT, line):
                 index_translate.append(i)
                 text_translate.append(line)
 
         NORMAL_MAX_TRANS = 100
         TEXT_ITEMS = len(text_translate)
         batches = round((TEXT_ITEMS / NORMAL_MAX_TRANS * 1.0) + 0.5)
-        remaining = len(text_translate)
 
         for b in range(batches):
             text_range = text_translate[
                 b * NORMAL_MAX_TRANS : (b + 1) * NORMAL_MAX_TRANS
             ]
-            # index_range = index_translate[
-            #     b * NORMAL_MAX_TRANS : (b + 1) * NORMAL_MAX_TRANS
-            # ]
-            # length = len(text_range)
             combined_text = "".join(text_range)
             error_count = 0
             sleep = SLEEP_BATCH
@@ -179,7 +160,6 @@ def translate_subs(
                     use_cache, translation_dest1 = translate_with_cache(
                         combined_text, translator, srclang, destlang1, translation_cache
                     )
-
                     expanded_dest1 = translation_dest1.split(SEPARATOR)
 
                     if not use_cache:
@@ -187,11 +167,7 @@ def translate_subs(
                         time.sleep(sleep_one)
 
                     use_cache, translation_dest2 = translate_with_cache(
-                        combined_text,
-                        translator,
-                        srclang,
-                        destlang2,
-                        translation_cache,
+                        combined_text, translator, srclang, destlang2, translation_cache
                     )
                     expanded_dest2 = translation_dest2.split(SEPARATOR)
 
@@ -199,7 +175,7 @@ def translate_subs(
                         pin = pinyin.get(combined_text, delimiter=" ")
                         expanded_pin = pin.split(SEPARATOR)
 
-                    break  # no need to loop when succeeds
+                    break
                 except Exception as ex:
                     print(ex, flush=True)
                     error_count += 1
@@ -239,11 +215,13 @@ def translate_subs(
             sub_files.append(file)
         sub_files.sort(reverse=True)
         if not sub_files:
-            # Nothing to translate
             return
 
 
 def process_urls(file_path):
+    """
+    Process URLs from a file and download the corresponding media.
+    """
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
@@ -291,17 +269,27 @@ def process_urls(file_path):
 
 
 def check_for_subtitles(subtitle_dir):
+    """
+    Check if there are subtitles in the directory.
+    """
     patterns = f"{subtitle_dir}/*.zh.srt"
     return bool(glob.glob(patterns))
 
 
 def has_valid_extension(filename):
+    """
+    Check if a filename has a valid media extension.
+    """
     valid_extensions = {".mp4", ".mp3", ".m4a"}
+
     file_extension = os.path.splitext(filename)[1].lower()
     return file_extension in valid_extensions
 
 
 def transcribe_media(WAITING_NEW_FILE=5):
+    """
+    Transcribe media files to text and generate subtitles.
+    """
     media_files = []
 
     process_urls(f"{MEDIA_DIR}/urls.txt")
@@ -332,7 +320,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
     media_file = media_files.pop()
 
-    print(f"Start processing {media_file}...", flush=True)
+    print(f"Start processing {media_file.removeprefix(MEDIA_DIR)}...", flush=True)
 
     outpath = SUBTITLE_DIR
     video_length = movie_duration(media_file)
@@ -346,19 +334,30 @@ def transcribe_media(WAITING_NEW_FILE=5):
     sub_zho = base_path + ".zh.srt"
     txt_sub = base_path + ".txt"
 
-    # no_text = "^[0-9\n\r]"
+    if not convert_media(media_file, audio_file):
+        print(f"\tError during conversion: {media_file.removeprefix(MEDIA_DIR)}")
+    else:
+        print(
+            f"\tConversion successful: {media_file.removeprefix(MEDIA_DIR)} -> {audio_file.removeprefix(MEDIA_DIR)}"
+        )
 
-    convert_media(media_file, audio_file)
-    convert_media(media_file, mp3_file)
+    if not convert_media(media_file, mp3_file):
+        print(f"\tError during conversion: {media_file.removeprefix(MEDIA_DIR)}")
+    else:
+        print(
+            f"\tConversion successful: {media_file.removeprefix(MEDIA_DIR)} -> {mp3_file.removeprefix(MEDIA_DIR)}"
+        )
 
-    print(f"Audio file exported {audio_file}", flush=True)
+    # print(f"\tAudio file exported {audio_file.removeprefix(MEDIA_DIR)}", flush=True)
 
     r = sr.Recognizer()
 
     with sr.AudioFile(audio_file) as source:
         audio_text = r.record(source)
 
-    print(f"Starting transcribing {audio_file}...", flush=True)
+    print(
+        f"\tStarting transcribing {audio_file.removeprefix(MEDIA_DIR)}...", flush=True
+    )
 
     start = time.time()
 
@@ -369,7 +368,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     end = time.time()
 
     print(
-        f"Time elapsed {end - start:.2f} - Video length {video_length:.2f} - relative speed {video_length/(end - start):.1f}x",
+        f"\t*** Time elapsed {format_duration(end - start)} - Video length {format_duration(video_length)} - relative speed {video_length/(end - start):.1f}x",
         flush=True,
     )
 
@@ -381,8 +380,6 @@ def transcribe_media(WAITING_NEW_FILE=5):
     for i in range(item_count):
         start_time = result["segments"][i]["start"]
         end_time = result["segments"][i]["end"]
-        # duration = end_time - start_time
-        # timestamp = f"{start_time:.3f} - {end_time:.3f}"
         text = result["segments"][i]["text"]
 
         if LANGUAGE == "zh":
@@ -403,20 +400,22 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
     if not subs:
         print(f"Subtitle empty {sub_zho}", flush=True)
-
     else:
         subs.save(sub_zho)
 
         with open(txt_sub, "w", encoding="utf-8") as file:
             file.write("\n".join(lines))
 
-        print(f"Subtitle written {sub_zho}", flush=True)
+        print(f"\tSubtitle written {sub_zho.removeprefix(MEDIA_DIR)}", flush=True)
         print(f"Waiting for new video files in {MEDIA_DIR}...", flush=True)
 
     shutil.move(media_file, new_media_file)
 
 
 def main():
+    """
+    Main entry point for the script.
+    """
     global MEDIA_DIR, SUBTITLE_DIR, TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2
 
     initial_checks()

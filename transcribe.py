@@ -17,13 +17,13 @@ from utils import *
 pinyin_generator = pinyin_jyutping.PinyinJyutping()
 
 # Constants
-MEDIA_DIR = ".\\downloads"
+MEDIA_DIR = "./downloads"
 LANGUAGE = "chinese"
 DEST_LANGUAGE_1 = "vietnamese"
 DEST_LANGUAGE_2 = "english"
 
-URL_FILE = ".\\downloads\\urls.txt"
-SUBTITLE_DIR = ".\\downloads\\subs"
+URL_FILE = "./downloads/urls.txt"
+SUBTITLE_DIR = "./downloads/subs"
 TRANSLATOR_SERVICE = "google"  # Define the default translator service here
 
 CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
@@ -337,7 +337,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     media_length = determine_media_length(json_meta)
     media_type = get_media_type(media_file)
 
-    print(f"\t*** Video length {format_duration(media_length)}", flush=True)
+    print(f"\t*** Media length {format_duration(media_length)}", flush=True)
 
     path, filename = os.path.split(media_file)
     base_name, extension = os.path.splitext(filename)
@@ -357,7 +357,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
             f"\tConversion successful: {no_current(media_file)} -> {no_current(wav_file)}"
         )
 
-    if media_type == 2:  # Video file, then creates an audio fle
+    if media_type == 2:  # Media file, then creates an audio fle
         if not convert_media(media_file, mp3_file):
             print(f"\tError during conversion: {no_current(media_file)}")
         else:
@@ -390,7 +390,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     end = time.time()
 
     print(
-        f"\t*** Time elapsed {format_duration(end - start)} - Video length {format_duration(media_length)} - relative speed {media_length/(end - start):.1f}x",
+        f"\t*** Time elapsed {format_duration(end - start)} - Media length {format_duration(media_length)} - relative speed {media_length/(end - start):.1f}x",
         flush=True,
     )
 
@@ -430,7 +430,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
             file.write("\n".join(lines))
 
         print(f"\tSubtitle written {no_current(sub_zho)}", flush=True)
-        print(f"Waiting for new video files in {MEDIA_DIR}...", flush=True)
+        print(f"Waiting for new media files in {MEDIA_DIR}...", flush=True)
 
     shutil.move(media_file, new_media_file)
 

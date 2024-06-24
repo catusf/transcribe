@@ -7,6 +7,12 @@ import pathvalidate
 import requests
 from pytube import YouTube
 
+import platform
+
+
+def is_windows():
+    return platform.system() == 'Windows'
+
 
 def clean_filename(name):
     return pathvalidate.sanitize_filename(name)
@@ -29,7 +35,11 @@ def wrap_file_name(filename):
 
 
 def make_black_video_file(input_file, output_file, media_length):
-    ff_path = os.path.join(".", "bin", "ffmpeg")
+
+    if is_windows():
+        ff_path = os.path.join(".", "bin", "ffmpeg")
+    else:
+        ff_path = "ffmpeg"
 
     command = [
         ff_path,
@@ -39,11 +49,13 @@ def make_black_video_file(input_file, output_file, media_length):
         "-f",
         "lavfi",  # Use lavfi to generate a video stream
         "-i",
-        f"color=c=black:s=640x360:d={media_length}",  # Create a black video of 10 seconds, change the duration as needed
+        # Create a black video of 10 seconds, change the duration as needed
+        f"color=c=black:s=640x360:d={media_length}",
         "-i",
         input_file,  # Input MP3 file
         "-crf",
-        "28",  # Lower quality for smaller file size (range 0-51, where 0 is lossless)
+        # Lower quality for smaller file size (range 0-51, where 0 is lossless)
+        "28",
         "-c:v",
         "libx264",  # Use the H.264 codec for video
         "-c:a",
@@ -82,13 +94,18 @@ def create_videos_for_all_mp3s(folder_path):
             json_meta = get_media_metadata(mp3_file_path)
             media_length = determine_media_length(json_meta)
             print(f"Processing {mp3_file_path}...")
-            make_black_video_file(mp3_file_path, output_video_path, media_length)
+            make_black_video_file(
+                mp3_file_path, output_video_path, media_length)
             print(f"Created video: {output_video_path}")
 
 
 def convert_media(input_file, output_file):
     # Get the path to the ffmpeg executable in the ./bin folder
-    ff_path = os.path.join(".", "bin", "ffmpeg")
+
+    if is_windows():
+        ff_path = os.path.join(".", "bin", "ffmpeg")
+    else:
+        ff_path = "ffmpeg"
 
     # Construct the command to convert the media file
     command = [
@@ -135,7 +152,11 @@ def get_video_dimensions(json_meta):
 
 
 def get_media_metadata(input_file):
-    ff_path = os.path.join(".", "bin", "ffprobe")
+
+    if is_windows():
+        ff_path = os.path.join(".", "bin", "ffprobe")
+    else:
+        ff_path = "ffprobe"
 
     command = [
         ff_path,
@@ -161,11 +182,10 @@ def get_media_metadata(input_file):
     return json_meta
 
 
-import os
-
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a", ".wma"}
 
-VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".flv", ".wmv", ".webm", ".m4v"}
+VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov",
+                    ".mkv", ".flv", ".wmv", ".webm", ".m4v"}
 
 MEDIA_EXTENSIONS = AUDIO_EXTENSIONS | VIDEO_EXTENSIONS
 
@@ -257,7 +277,8 @@ def download_file(url, filename, folder):
     filepath = os.path.join(folder, new_filename)
 
     if os.path.exists(filepath):
-        print(f"File {new_filename} already exists, skipping download.", flush=True)
+        print(
+            f"File {new_filename} already exists, skipping download.", flush=True)
         return False
 
     with open(filepath, "wb") as file:
@@ -276,7 +297,8 @@ def format_duration(seconds):
 
     # Format with leading zeros
     formatted_time = (
-        f"{hours:02}:{minutes:02}:{int(remaining_seconds):02}.{milliseconds:03}"
+        f"{hours:02}:{minutes:02}:{int(remaining_seconds):02}.{
+            milliseconds:03}"
         if hours
         else f"{minutes:02}:{int(remaining_seconds):02}.{milliseconds:03}"
     )
@@ -303,7 +325,8 @@ availableTranslationLanguages = [
     },
     {"code": "ro", "name": "Romanian", "nativeName": "română"},
     {"code": "ru", "name": "Russian", "nativeName": "русский язык"},
-    {"code": "es", "name": "Spanish (Spain)", "nativeName": "español (España)"},
+    {"code": "es", "name": "Spanish (Spain)",
+     "nativeName": "español (España)"},
     {
         "code": "es-la",
         "name": "Spanish (Latin America)",
@@ -314,7 +337,8 @@ availableTranslationLanguages = [
     {"code": "da", "name": "Danish", "nativeName": "dansk"},
     {"code": "en", "name": "English", "nativeName": "English (UK)"},
     {"code": "fi", "name": "Finnish", "nativeName": "suomi"},
-    {"code": "fr-ca", "name": "French (Canada)", "nativeName": "français canadien"},
+    {"code": "fr-ca", "name": "French (Canada)",
+     "nativeName": "français canadien"},
     {"code": "iw", "name": "Hebrew", "nativeName": "עברית"},
     {"code": "hu", "name": "Hungarian", "nativeName": "magyar"},
     {"code": "ko", "name": "Korean", "nativeName": "한국어"},

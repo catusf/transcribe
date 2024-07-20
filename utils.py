@@ -288,20 +288,24 @@ def download_file(url, filename, folder):
     return True
 
 
-def format_duration(seconds):
-    # Calculate hours, minutes, seconds, and milliseconds
+def format_time(seconds):
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     remaining_seconds = seconds % 60
-    milliseconds = int((remaining_seconds - int(remaining_seconds)) * 1000)
-
-    # Format with leading zeros
+    milliseconds = int((remaining_seconds % 1) * 1000)
+    
     formatted_time = (
-        f"{hours:02}:{minutes:02}:{int(remaining_seconds):02}.{
-            milliseconds:03}"
+        f"{hours:02}:{minutes:02}:{int(remaining_seconds):02}.{milliseconds:03}"
         if hours
         else f"{minutes:02}:{int(remaining_seconds):02}.{milliseconds:03}"
     )
+    
+    return formatted_time
+
+# Example usage
+formatted_time = format_time(3661.234)
+print(formatted_time)  # Output: 01:01:01.234
+
 
     return formatted_time
 

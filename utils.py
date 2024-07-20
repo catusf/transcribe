@@ -288,7 +288,7 @@ def download_file(url, filename, folder):
     return True
 
 
-def format_time(seconds):
+def format_duration(seconds):
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     remaining_seconds = seconds % 60

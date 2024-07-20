@@ -299,13 +299,6 @@ def format_time(seconds):
         if hours
         else f"{minutes:02}:{int(remaining_seconds):02}.{milliseconds:03}"
     )
-    
-    return formatted_time
-
-# Example usage
-formatted_time = format_time(3661.234)
-print(formatted_time)  # Output: 01:01:01.234
-
 
     return formatted_time
 

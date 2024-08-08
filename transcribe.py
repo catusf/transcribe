@@ -24,7 +24,12 @@ DEST_LANGUAGE_2 = "english"
 
 URL_FILE = ".\\downloads\\urls.txt"
 SUBTITLE_DIR = ".\\downloads\\subs"
-TRANSLATOR_SERVICE = "google"  # Define the default translator service here
+TRANSLATOR_SERVICE = (
+    # "bing"  #
+    "alibaba"  #
+    # "baidu"
+    # "google"  # Define the default translator service here
+)
 
 CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
 

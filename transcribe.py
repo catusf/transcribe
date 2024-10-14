@@ -36,9 +36,9 @@ LANGUAGE = "chinese"
 DEST_LANGUAGE_1 = "vietnamese"
 DEST_LANGUAGE_2 = "english"
 
-URL_FILE = "./downloads/urls.txt"
-SUBTITLE_DIR = "./downloads/subs"
-DONE_SUBS_DIR = "./downloads/subs/done"
+URL_FILE = os.path.join(MEDIA_DIR, "urls.txt")
+SUBTITLE_DIR = os.path.join(MEDIA_DIR, "subs")
+DONE_SUBS_DIR = os.path.join(SUBTITLE_DIR, "done")
 
 os.makedirs(DONE_SUBS_DIR, exist_ok=True)
 
@@ -51,7 +51,7 @@ TRANSLATOR_SERVICE = (
 
 # Define local directory to save the model
 MODEL_DIR = "./downloads/m2m100_model"
-LOADE_MODEL = False
+LOADED_MODEL = False
 
 CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
 
@@ -106,7 +106,10 @@ def setup_model(MODEL_DIR):
     """
 
     if LOADED_MODEL:
+        print('Offline translation model loaded already.')
         return model, tokenizer
+    
+    print('Loading offline translation model...')
     
     if not os.path.exists(MODEL_DIR):
         # Load the model and tokenizer from Hugging Face
@@ -124,11 +127,10 @@ def setup_model(MODEL_DIR):
         model = M2M100ForConditionalGeneration.from_pretrained(MODEL_DIR)
         tokenizer = M2M100Tokenizer.from_pretrained(MODEL_DIR)
 
-    print('M2M100 model loaded.')
+    print('Offline translation model loaded.')
+
     LOADED_MODEL = True
     return model, tokenizer
-
-print('Loading offline translation model')
 
 model, tokenizer = None, None
 

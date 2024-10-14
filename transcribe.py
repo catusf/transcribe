@@ -23,8 +23,10 @@ LANGUAGE = "chinese"
 DEST_LANGUAGE_1 = "vietnamese"
 DEST_LANGUAGE_2 = "english"
 
-URL_FILE = ".\\downloads\\urls.txt"
-SUBTITLE_DIR = ".\\downloads\\subs"
+URL_FILE = "./downloads/urls.txt"
+SUBTITLE_DIR = "./downloads/subs"
+DONE_SUBS_DIR = "./downloads/subs/done"
+
 TRANSLATOR_SERVICE = (
     # "bing"  #
     # "alibaba"  #
@@ -34,6 +36,7 @@ TRANSLATOR_SERVICE = (
 
 # Define local directory to save the model
 MODEL_DIR = "./downloads/m2m100_model"
+LOADE_MODEL = False
 
 CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
 
@@ -86,6 +89,10 @@ def setup_model(MODEL_DIR):
     model (M2M100ForConditionalGeneration): The translation model.
     tokenizer (M2M100Tokenizer): The tokenizer for the model.
     """
+
+    if LOADED_MODEL:
+        return model, tokenizer
+    
     if not os.path.exists(MODEL_DIR):
         # Load the model and tokenizer from Hugging Face
         print(f"Downloading and saving the model and tokenizer to {MODEL_DIR}")
@@ -101,12 +108,14 @@ def setup_model(MODEL_DIR):
         print(f"Loading model and tokenizer from {MODEL_DIR}")
         model = M2M100ForConditionalGeneration.from_pretrained(MODEL_DIR)
         tokenizer = M2M100Tokenizer.from_pretrained(MODEL_DIR)
-    
+
+    print('M2M100 model loaded.')
+    LOADED_MODEL = True
     return model, tokenizer
 
 print('Loading offline translation model')
 
-model, tokenizer = setup_model(MODEL_DIR)
+model, tokenizer = None, None
 
 # Function to perform the translation
 def offline_translate(text, from_lang, to_lang):
@@ -124,6 +133,8 @@ def offline_translate(text, from_lang, to_lang):
     str: The translated text
     """
     # Set the source language
+    global model, tokenizer
+    model, tokenizer = setup_model(MODEL_DIR)
     tokenizer.src_lang = from_lang
     
     # Tokenize the input text
@@ -221,6 +232,7 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
     print(f"Start translating {sub_src}...", flush=True)
     with open(sub_src, "r", encoding="utf-8") as file_src:
         text_src = file_src.readlines()
+        file_src.close()
 
         text_all = text_src.copy()
         text_pin = text_src.copy() if srclang == "zh" else []
@@ -304,6 +316,14 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
                 file.write("".join(text_pin))
         with open(sub_all, "w", encoding="utf-8") as file:
             file.write("".join(text_all))
+
+        folder, file_name = os.path.split(sub_src)
+        base_name = file_name[:file_name.find('.zh.srt')]
+        moved_files = glob.glob(f'{SUBTITLE_DIR}/{base_name}*.*')
+
+        for file in moved_files:
+            folder, file_name = os.path.split(file)
+            shutil.move(file, os.path.join(DONE_SUBS_DIR, file_name))
 
     save_translation_cache(translation_cache)
 

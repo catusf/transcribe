@@ -1,1 +1,0 @@
-The output files will be here: original media file, mp3 audio file, plus all the subtitle files.

@@ -4,6 +4,7 @@ import re
 import shutil
 import time
 import json
+from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
 
 # import pinyin
 import pinyin_jyutping
@@ -17,7 +18,7 @@ from utils import *
 pinyin_generator = pinyin_jyutping.PinyinJyutping()
 
 # Constants
-MEDIA_DIR = ".\\downloads"
+MEDIA_DIR = "./downloads"
 LANGUAGE = "chinese"
 DEST_LANGUAGE_1 = "vietnamese"
 DEST_LANGUAGE_2 = "english"
@@ -26,10 +27,13 @@ URL_FILE = ".\\downloads\\urls.txt"
 SUBTITLE_DIR = ".\\downloads\\subs"
 TRANSLATOR_SERVICE = (
     # "bing"  #
-    "alibaba"  #
+    # "alibaba"  #
     # "baidu"
-    # "google"  # Define the default translator service here
+    "google"  # Define the default translator service here
 )
+
+# Define local directory to save the model
+MODEL_DIR = "./downloads/m2m100_model"
 
 CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
 
@@ -69,6 +73,70 @@ def save_translation_cache(cache):
     with open(CACHE_FILE, "w", encoding="utf-8") as file:
         json.dump(cache, file, ensure_ascii=False, indent=4)
 
+# Function to set up the model and tokenizer
+def setup_model(MODEL_DIR):
+    """
+    Sets up the translation model and tokenizer. Loads them from the local directory if available,
+    otherwise downloads them and saves them locally.
+
+    Parameters:
+    MODEL_DIR (str): The directory where the model and tokenizer are saved.
+
+    Returns:
+    model (M2M100ForConditionalGeneration): The translation model.
+    tokenizer (M2M100Tokenizer): The tokenizer for the model.
+    """
+    if not os.path.exists(MODEL_DIR):
+        # Load the model and tokenizer from Hugging Face
+        print(f"Downloading and saving the model and tokenizer to {MODEL_DIR}")
+        model = M2M100ForConditionalGeneration.from_pretrained('facebook/m2m100_418M')
+        tokenizer = M2M100Tokenizer.from_pretrained('facebook/m2m100_418M')
+
+        # Save model and tokenizer locally
+        model.save_pretrained(MODEL_DIR)
+        tokenizer.save_pretrained(MODEL_DIR)
+        print(f"Model and tokenizer saved locally at {MODEL_DIR}")
+    else:
+        # Load the model and tokenizer from the local directory
+        print(f"Loading model and tokenizer from {MODEL_DIR}")
+        model = M2M100ForConditionalGeneration.from_pretrained(MODEL_DIR)
+        tokenizer = M2M100Tokenizer.from_pretrained(MODEL_DIR)
+    
+    return model, tokenizer
+
+print('Loading offline translation model')
+
+model, tokenizer = setup_model(MODEL_DIR)
+
+# Function to perform the translation
+def offline_translate(text, from_lang, to_lang):
+    """
+    Translates text from one language to another using a pre-loaded model and tokenizer.
+    
+    Parameters:
+    model (M2M100ForConditionalGeneration): The translation model
+    tokenizer (M2M100Tokenizer): The tokenizer for the model
+    text (str): The input text to translate
+    from_lang (str): The source language code (e.g., 'hi', 'zh')
+    to_lang (str): The target language code (e.g., 'fr', 'en')
+
+    Returns:
+    str: The translated text
+    """
+    # Set the source language
+    tokenizer.src_lang = from_lang
+    
+    # Tokenize the input text
+    encoded_text = tokenizer(text, return_tensors='pt')
+    
+    # Generate the translation by setting the forced beginning of the sentence to the target language
+    generated_tokens = model.generate(**encoded_text, forced_bos_token_id=tokenizer.get_lang_id(to_lang))
+    
+    # Decode the translated tokens to get the output text
+    translated_text = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+    
+    return translated_text[0]
+
 
 def translate_with_cache(text, translator, srclang, destlang, cache):
     """
@@ -81,10 +149,27 @@ def translate_with_cache(text, translator, srclang, destlang, cache):
         translation = translators.translate_text(
             text, translator=translator, from_language=srclang, to_language=destlang
         )
+
         cache[cache_key] = translation
         return False, translation
 
 
+def translate_offline_with_cache(text, srclang, destlang, cache):
+    """
+    Translate text with caching to avoid repeated translations.
+    """
+    cache_key = f"{srclang}_{destlang}_{text}"
+    if cache_key in cache:
+        return True, cache[cache_key]
+    else:
+        translation = offline_translate(model, tokenizer, text, srclang, destlang)
+        # translators.translate_text(
+        #     text, translator=translator, from_language=srclang, to_language=destlang
+        # )
+
+        cache[cache_key] = translation
+        return False, translation
+    
 def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_FILE=5):
     """
     Translate subtitle files from source language to destination languages.
@@ -169,9 +254,11 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
 
             while error_count < 5:
                 try:
-                    use_cache, translation_dest1 = translate_with_cache(
-                        combined_text, translator, srclang, destlang1, translation_cache
-                    )
+                    use_cache, translation_dest1 = translate_offline_with_cache(
+                        combined_text, srclang, destlang1, translation_cache
+                    )                    # use_cache, translation_dest1 = translate_with_cache(
+                    #     combined_text, translator, srclang, destlang1, translation_cache
+                    # )
                     expanded_dest1 = translation_dest1.split(SEPARATOR)
 
                     if not use_cache:
@@ -273,7 +360,7 @@ def process_urls(file_path):
             print(f"Failed to download {url}: {e}", flush=True)
             remaining_urls.append(line)
 
-    with open(file_path, "w") as file:
+    with open(file_path, "w", encoding='utf-8') as file:
         if lines[0].startswith("#"):
             file.write(lines[0])
         for url in remaining_urls:
@@ -342,7 +429,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     media_length = determine_media_length(json_meta)
     media_type = get_media_type(media_file)
 
-    print(f"\t*** Video length {format_duration(media_length)}", flush=True)
+    print(f"\t*** Media length {format_duration(media_length)}", flush=True)
 
     path, filename = os.path.split(media_file)
     base_name, extension = os.path.splitext(filename)
@@ -362,7 +449,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
             f"\tConversion successful: {no_current(media_file)} -> {no_current(wav_file)}"
         )
 
-    if media_type == 2:  # Video file, then creates an audio fle
+    if media_type == 2:  # Media file, then creates an audio fle
         if not convert_media(media_file, mp3_file):
             print(f"\tError during conversion: {no_current(media_file)}")
         else:
@@ -395,7 +482,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     end = time.time()
 
     print(
-        f"\t*** Time elapsed {format_duration(end - start)} - Video length {format_duration(media_length)} - relative speed {media_length/(end - start):.1f}x",
+        f"\t*** Time elapsed {format_duration(end - start)} - Media length {format_duration(media_length)} - relative speed {media_length/(end - start):.1f}x",
         flush=True,
     )
 
@@ -435,7 +522,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
             file.write("\n".join(lines))
 
         print(f"\tSubtitle written {no_current(sub_zho)}", flush=True)
-        print(f"Waiting for new video files in {MEDIA_DIR}...", flush=True)
+        print(f"Waiting for new media files in {MEDIA_DIR}...", flush=True)
 
     shutil.move(media_file, new_media_file)
 

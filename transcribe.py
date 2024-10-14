@@ -40,6 +40,8 @@ URL_FILE = "./downloads/urls.txt"
 SUBTITLE_DIR = "./downloads/subs"
 DONE_SUBS_DIR = "./downloads/subs/done"
 
+os.makedirs(DONE_SUBS_DIR, exist_ok=True)
+
 TRANSLATOR_SERVICE = (
     # "bing"  #
     # "alibaba"  #

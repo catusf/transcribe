@@ -12,7 +12,7 @@ import pinyin_jyutping
 import pysrt
 import speech_recognition as sr
 import translators
-from opencc import OpenCC
+import chinese_converter
 
 from utils import *
 
@@ -430,7 +430,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     process_urls(f"{MEDIA_DIR}/urls.txt")
 
     # if LANGUAGE == "zh":
-    converter = OpenCC("t2s")
+    # converter = OpenCC("t2s")
 
     matching_files = []
 
@@ -534,8 +534,8 @@ def transcribe_media(WAITING_NEW_FILE=5):
         text = result["segments"][i]["text"]
 
         if languageEnglish2Code[LANGUAGE] == "zh":
-            text = converter.convert(text)
-            text = text.replace("v̌", "ǚ")
+            text = chinese_converter.to_simplified(text)
+            # text = text.replace("v̌", "ǚ")
 
         sub = pysrt.SubRipItem(
             index=sub_idx,

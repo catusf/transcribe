@@ -5,6 +5,7 @@ import shutil
 import time
 import json
 from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
+# from google.colab import drive
 
 # import pinyin
 import pinyin_jyutping
@@ -17,8 +18,20 @@ from utils import *
 
 pinyin_generator = pinyin_jyutping.PinyinJyutping()
 
+
+def is_colab():
+    try:
+        import google.colab
+        return True
+    except ImportError:
+        return False
+
+# Define the directory containing the media files
+COLAB_MEDIA_DIR = '/content/drive/My Drive/ChatGPT/transcribe'
+
 # Constants
-MEDIA_DIR = "./downloads"
+MEDIA_DIR = COLAB_MEDIA_DIR if is_colab() else "./downloads"
+
 LANGUAGE = "chinese"
 DEST_LANGUAGE_1 = "vietnamese"
 DEST_LANGUAGE_2 = "english"
@@ -40,7 +53,7 @@ LOADE_MODEL = False
 
 CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
 
-
+    
 def no_current(dir):
     return "." + dir.removeprefix(MEDIA_DIR)
 

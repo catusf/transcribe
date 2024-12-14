@@ -309,12 +309,16 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
                     expanded_dest1 = translation_dest1.split(SEPARATOR)
 
                     if not use_cache:
-                        print(f"\tSleeping {sleep_one}s", flush=True)
+                        if sleep_one > 5:
+                            print(f"\tSleeping {sleep_one}s", flush=True, end="... ")
+                        else:
+                            print(f"", flush=True, end=".")
+
                         time.sleep(sleep_one)
 
                     # use_cache, translation_dest2 = translate_offline_with_cache(
                     #     combined_text, srclang, destlang2, translation_cache
-                    # )  
+                    # )
                     use_cache, translation_dest2 = translate_with_cache(
                         combined_text, translator, srclang, destlang2, translation_cache
                     )
@@ -328,7 +332,7 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
                 except Exception as ex:
                     print(ex, flush=True)
                     error_count += 1
-                    print(f"\tSleeping {sleep}s", flush=True)
+                    print(f"\tSleeping {sleep}s", flush=True, end="... ")
                     time.sleep(sleep)
                     sleep = sleep * 1.5
                     sleep_one = sleep * 1.5
@@ -365,7 +369,7 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
 
     save_translation_cache(translation_cache)
 
-    print(f"\tCombined file written {sub_all}", flush=True)
+    print(f"\n\tCombined file written {sub_all}", flush=True)
     print(f"Waiting for new subtitle files in {SUBTITLE_DIR}...", flush=True)
     if not sub_files:
         for file in glob.glob(f"{SUBTITLE_DIR}*.{srclang}.srt"):
@@ -529,7 +533,7 @@ def transcribe_media(WAITING_NEW_FILE=5):
     with sr.AudioFile(wav_file) as source:
         audio_text = r.record(source)
 
-    print(f"\tStarting transcribing {no_current(wav_file)}...", flush=True)
+    print(f"\tStarting transcription {no_current(wav_file)}...", flush=True)
 
     start = time.time()
 

@@ -300,24 +300,24 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
 
             while error_count < 5:
                 try:
-                    use_cache, translation_dest1 = translate_offline_with_cache(
-                        combined_text, srclang, destlang1, translation_cache
-                    )
-                    # use_cache, translation_dest1 = translate_with_cache(
-                    #     combined_text, translator, srclang, destlang1, translation_cache
+                    # use_cache, translation_dest1 = translate_offline_with_cache(
+                    #     combined_text, srclang, destlang1, translation_cache
                     # )
+                    use_cache, translation_dest1 = translate_with_cache(
+                        combined_text, translator, srclang, destlang1, translation_cache
+                    )
                     expanded_dest1 = translation_dest1.split(SEPARATOR)
 
                     if not use_cache:
                         print(f"\tSleeping {sleep_one}s", flush=True)
                         time.sleep(sleep_one)
 
-                    use_cache, translation_dest2 = translate_offline_with_cache(
-                        combined_text, srclang, destlang2, translation_cache
-                    )  
-                    # use_cache, translation_dest2 = translate_with_cache(
-                    #     combined_text, translator, srclang, destlang2, translation_cache
-                    # )
+                    # use_cache, translation_dest2 = translate_offline_with_cache(
+                    #     combined_text, srclang, destlang2, translation_cache
+                    # )  
+                    use_cache, translation_dest2 = translate_with_cache(
+                        combined_text, translator, srclang, destlang2, translation_cache
+                    )
                     expanded_dest2 = translation_dest2.split(SEPARATOR)
 
                     if srclang == "zh":

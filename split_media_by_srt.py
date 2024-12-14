@@ -9,11 +9,26 @@ from openpyxl import Workbook
 from datetime import datetime, timedelta
 
 
+def is_colab():
+    try:
+        import google.colab
+
+        return True
+    except ImportError:
+        return False
+
+
+# Define the directory containing the media files
+COLAB_MEDIA_DIR = "/content/drive/My Drive/ChatGPT/transcribe/subs"
+
+# Constants
+MEDIA_FOLDER = COLAB_MEDIA_DIR if is_colab() else "./downloads/subs"
+
 TIME_STAMP_FORMAT = "%H:%M:%S.%f"
 OFFSET_LEFT_MS = 700
 OFFSET_RIGHT_MS = 100
 
-MEDIA_FOLDER = "downloads/subs"
+# MEDIA_FOLDER = "downloads/subs"
 OUT_MEDIA = "videos-out"
 
 SPLIT_VIDEOS = True

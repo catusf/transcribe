@@ -104,7 +104,8 @@ def setup_model(MODEL_DIR):
     model (M2M100ForConditionalGeneration): The translation model.
     tokenizer (M2M100Tokenizer): The tokenizer for the model.
     """
-
+    global LOADED_MODEL
+    
     if LOADED_MODEL:
         print('Offline translation model loaded already.')
         return model, tokenizer

@@ -190,7 +190,7 @@ def translate_offline_with_cache(text, srclang, destlang, cache):
     if cache_key in cache:
         return True, cache[cache_key]
     else:
-        translation = offline_translate(model, tokenizer, text, srclang, destlang)
+        translation = offline_translate(text, srclang, destlang)
         # translators.translate_text(
         #     text, translator=translator, from_language=srclang, to_language=destlang
         # )

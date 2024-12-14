@@ -365,9 +365,9 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
         base_name = file_name[: file_name.find(".zh.srt")]
         moved_files = glob.glob(f"{SUBTITLE_DIR}/{base_name}*.*")
 
-        for file in moved_files:
-            folder, file_name = os.path.split(file)
-            shutil.move(file, os.path.join(DONE_SUBS_DIR, file_name))
+        # for file in moved_files:
+        #     folder, file_name = os.path.split(file)
+        #     shutil.move(file, os.path.join(DONE_SUBS_DIR, file_name))
 
     save_translation_cache(translation_cache)
 

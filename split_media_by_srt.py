@@ -5,10 +5,7 @@ import subprocess
 import re
 import argparse
 from pathvalidate import sanitize_filename
-import openpyxl
 from openpyxl import Workbook
-from googletrans import Translator
-from datetime import timedelta
 from datetime import datetime, timedelta
 
 

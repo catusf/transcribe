@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import subprocess
 import re
@@ -110,9 +112,7 @@ def split_video(video_file, srt_file, report_data):
             )
         )  # Replace spaces with underscores
 
-        output_file = (
-            f"{index:03d}_{sanitized_text[:MAX_FILENAME_LENGTH]}{fileext}"
-        )
+        output_file = f"{index:03d}_{sanitized_text[:MAX_FILENAME_LENGTH]}{fileext}"
         output_file = os.path.join(new_dir, output_file)
 
         if SPLIT_VIDEOS:

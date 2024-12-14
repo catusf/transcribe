@@ -5,6 +5,7 @@ import shutil
 import time
 import json
 from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
+
 # from google.colab import drive
 
 # import pinyin
@@ -18,16 +19,20 @@ from utils import *
 
 pinyin_generator = pinyin_jyutping.PinyinJyutping()
 
+SEPARATOR = "\n"
+
 
 def is_colab():
     try:
         import google.colab
+
         return True
     except ImportError:
         return False
 
+
 # Define the directory containing the media files
-COLAB_MEDIA_DIR = '/content/drive/My Drive/ChatGPT/transcribe'
+COLAB_MEDIA_DIR = "/content/drive/My Drive/ChatGPT/transcribe"
 
 # Constants
 MEDIA_DIR = COLAB_MEDIA_DIR if is_colab() else "./downloads"
@@ -55,7 +60,7 @@ LOADED_MODEL = False
 
 CACHE_FILE = os.path.join(MEDIA_DIR, "translation_cache.json")
 
-    
+
 def no_current(dir):
     return "." + dir.removeprefix(MEDIA_DIR)
 
@@ -91,6 +96,7 @@ def save_translation_cache(cache):
     with open(CACHE_FILE, "w", encoding="utf-8") as file:
         json.dump(cache, file, ensure_ascii=False, indent=4)
 
+
 # Function to set up the model and tokenizer
 def setup_model(MODEL_DIR):
     """
@@ -105,18 +111,18 @@ def setup_model(MODEL_DIR):
     tokenizer (M2M100Tokenizer): The tokenizer for the model.
     """
     global LOADED_MODEL
-    
+
     if LOADED_MODEL:
-        print('Offline translation model loaded already.')
+        print("Offline translation model loaded already.")
         return model, tokenizer
-    
-    print('Loading offline translation model...')
-    
+
+    print("Loading offline translation model...")
+
     if not os.path.exists(MODEL_DIR):
         # Load the model and tokenizer from Hugging Face
         print(f"Downloading and saving the model and tokenizer to {MODEL_DIR}")
-        model = M2M100ForConditionalGeneration.from_pretrained('facebook/m2m100_418M')
-        tokenizer = M2M100Tokenizer.from_pretrained('facebook/m2m100_418M')
+        model = M2M100ForConditionalGeneration.from_pretrained("facebook/m2m100_418M")
+        tokenizer = M2M100Tokenizer.from_pretrained("facebook/m2m100_418M")
 
         # Save model and tokenizer locally
         model.save_pretrained(MODEL_DIR)
@@ -128,18 +134,20 @@ def setup_model(MODEL_DIR):
         model = M2M100ForConditionalGeneration.from_pretrained(MODEL_DIR)
         tokenizer = M2M100Tokenizer.from_pretrained(MODEL_DIR)
 
-    print('Offline translation model loaded.')
+    print("Offline translation model loaded.")
 
     LOADED_MODEL = True
     return model, tokenizer
 
+
 model, tokenizer = None, None
 
+
 # Function to perform the translation
-def offline_translate(text, from_lang, to_lang):
+def offline_translate(raw_text, from_lang, to_lang):
     """
     Translates text from one language to another using a pre-loaded model and tokenizer.
-    
+
     Parameters:
     model (M2M100ForConditionalGeneration): The translation model
     tokenizer (M2M100Tokenizer): The tokenizer for the model
@@ -154,17 +162,25 @@ def offline_translate(text, from_lang, to_lang):
     global model, tokenizer
     model, tokenizer = setup_model(MODEL_DIR)
     tokenizer.src_lang = from_lang
-    
-    # Tokenize the input text
-    encoded_text = tokenizer(text, return_tensors='pt')
-    
-    # Generate the translation by setting the forced beginning of the sentence to the target language
-    generated_tokens = model.generate(**encoded_text, forced_bos_token_id=tokenizer.get_lang_id(to_lang))
-    
-    # Decode the translated tokens to get the output text
-    translated_text = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
-    
-    return translated_text[0]
+
+    text_array = raw_text.strip().split(SEPARATOR)
+    translated_text_array = []
+
+    for text in text_array:
+        # Tokenize the input text
+        encoded_text = tokenizer(text, return_tensors="pt")
+
+        # Generate the translation by setting the forced beginning of the sentence to the target language
+        generated_tokens = model.generate(
+            **encoded_text, forced_bos_token_id=tokenizer.get_lang_id(to_lang)
+        )
+
+        # Decode the translated tokens to get the output text
+        translated_text_array.append(
+            tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0]
+        )
+
+    return SEPARATOR.join(translated_text_array)
 
 
 def translate_with_cache(text, translator, srclang, destlang, cache):
@@ -178,7 +194,7 @@ def translate_with_cache(text, translator, srclang, destlang, cache):
         translation = translators.translate_text(
             text, translator=translator, from_language=srclang, to_language=destlang
         )
-
+        translation = translation.replace("\n ", "\n")
         cache[cache_key] = translation
         return False, translation
 
@@ -198,7 +214,8 @@ def translate_offline_with_cache(text, srclang, destlang, cache):
 
         cache[cache_key] = translation
         return False, translation
-    
+
+
 def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_FILE=5):
     """
     Translate subtitle files from source language to destination languages.
@@ -259,7 +276,6 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
 
         SLEEP_ONE = 1
         SLEEP_BATCH = 60
-        SEPARATOR = "\n"
 
         index_translate = []
         text_translate = []
@@ -267,7 +283,7 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
         for i, line in enumerate(text_src):
             if not re.match(NO_SUBTILE_TEXT, line):
                 index_translate.append(i)
-                text_translate.append(line)
+                text_translate.append(line.strip())
 
         NORMAL_MAX_TRANS = 100
         TEXT_ITEMS = len(text_translate)
@@ -277,7 +293,7 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
             text_range = text_translate[
                 b * NORMAL_MAX_TRANS : (b + 1) * NORMAL_MAX_TRANS
             ]
-            combined_text = "".join(text_range)
+            combined_text = SEPARATOR.join(text_range)
             error_count = 0
             sleep = SLEEP_BATCH
             sleep_one = SLEEP_ONE
@@ -286,7 +302,8 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
                 try:
                     use_cache, translation_dest1 = translate_offline_with_cache(
                         combined_text, srclang, destlang1, translation_cache
-                    )                    # use_cache, translation_dest1 = translate_with_cache(
+                    )
+                    # use_cache, translation_dest1 = translate_with_cache(
                     #     combined_text, translator, srclang, destlang1, translation_cache
                     # )
                     expanded_dest1 = translation_dest1.split(SEPARATOR)
@@ -295,9 +312,12 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
                         print(f"\tSleeping {sleep_one}s", flush=True)
                         time.sleep(sleep_one)
 
-                    use_cache, translation_dest2 = translate_with_cache(
-                        combined_text, translator, srclang, destlang2, translation_cache
-                    )
+                    use_cache, translation_dest2 = translate_offline_with_cache(
+                        combined_text, srclang, destlang2, translation_cache
+                    )  
+                    # use_cache, translation_dest2 = translate_with_cache(
+                    #     combined_text, translator, srclang, destlang2, translation_cache
+                    # )
                     expanded_dest2 = translation_dest2.split(SEPARATOR)
 
                     if srclang == "zh":
@@ -336,8 +356,8 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
             file.write("".join(text_all))
 
         folder, file_name = os.path.split(sub_src)
-        base_name = file_name[:file_name.find('.zh.srt')]
-        moved_files = glob.glob(f'{SUBTITLE_DIR}/{base_name}*.*')
+        base_name = file_name[: file_name.find(".zh.srt")]
+        moved_files = glob.glob(f"{SUBTITLE_DIR}/{base_name}*.*")
 
         for file in moved_files:
             folder, file_name = os.path.split(file)
@@ -398,7 +418,7 @@ def process_urls(file_path):
             print(f"Failed to download {url}: {e}", flush=True)
             remaining_urls.append(line)
 
-    with open(file_path, "w", encoding='utf-8') as file:
+    with open(file_path, "w", encoding="utf-8") as file:
         if lines[0].startswith("#"):
             file.write(lines[0])
         for url in remaining_urls:

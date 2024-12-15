@@ -1,0 +1,7 @@
+[project]
+name = "transcribe"
+version = "1.1.0"
+description = "Transcription tool for media filesfiles"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []

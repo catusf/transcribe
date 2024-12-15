@@ -69,6 +69,8 @@ def make_black_video_file(input_file, output_file, media_length):
         subprocess.run(command, check=True)
         return True
     except subprocess.CalledProcessError as e:
+        print(f"Error running:\n{" ".join(command)}")
+
         return False
 
 
@@ -123,6 +125,7 @@ def convert_media(input_file, output_file):
         subprocess.run(command, check=True)
         return True
     except subprocess.CalledProcessError as e:
+        print(f"Error running:\n{" ".join(command)}")
         return False
 
 

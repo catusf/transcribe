@@ -19,7 +19,7 @@ def is_colab():
 
 
 # Define the directory containing the media files
-COLAB_MEDIA_DIR = "/content/drive/My Drive/ChatGPT/transcribe/subs"
+COLAB_MEDIA_DIR = "/content/drive/My Drive/trans/subs"
 
 # Constants
 MEDIA_FOLDER = COLAB_MEDIA_DIR if is_colab() else "./downloads/subs"
@@ -156,8 +156,10 @@ def split_video(video_file, srt_file, report_data):
             except subprocess.CalledProcessError as e:
                 # Print error details
                 print(
-                    f"Error splitting video segment {index}: {e.stderr.decode('utf-8').strip()}"
+                    f"Error splitting video segment {index}: {e.stderr.decode('utf-8').strip()} with is command"
                 )
+                print(f"\n{" ".join(cmd)}")
+
                 continue
 
         # Get the length of the segment

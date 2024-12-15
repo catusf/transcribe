@@ -34,7 +34,7 @@ def is_colab():
 
 
 # Define the directory containing the media files
-COLAB_MEDIA_DIR = "/content/drive/My Drive/ChatGPT/transcribe"
+COLAB_MEDIA_DIR = "/content/drive/My Drive/trans"
 
 # Constants
 MEDIA_DIR = COLAB_MEDIA_DIR if is_colab() else "./downloads"

@@ -372,7 +372,7 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
     save_translation_cache(translation_cache)
 
     print(f"\n\tCombined file written {sub_all}", flush=True)
-    print(f"Waiting for new subtitle files in {SUBTITLE_DIR}...", flush=True)
+    # print(f"Waiting for new subtitle files in {SUBTITLE_DIR}...", flush=True)
     if not sub_files:
         for file in glob.glob(f"{SUBTITLE_DIR}*.{srclang}.srt"):
             sub_files.append(file)
@@ -599,9 +599,18 @@ def main():
 
     initial_checks()
 
-    print("Waiting for new media files...", flush=True)
-    while True:
-        process_urls(URL_FILE)
+    LOOP_FOREVER = False
+
+    if LOOP_FOREVER:
+        print("Waiting for new media files...", flush=True)
+        while True:
+            process_urls(URL_FILE)
+            transcribe_media(1)
+            translate_subs(
+                TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2, 0
+            )
+    else:
+        print("Waiting for new media files...", flush=True)
         transcribe_media(1)
         translate_subs(
             TRANSLATOR_SERVICE, LANGUAGE, DEST_LANGUAGE_1, DEST_LANGUAGE_2, 0

@@ -346,9 +346,9 @@ def translate_subs(translator, language, dest_lang_1, dest_lang_2, WAITING_NEW_F
                 text_dest2[y] = expanded_dest2[count] + "\n"
                 if srclang == "zh":
                     text_pin[y] = expanded_pin[count].strip() + "\n"
-                    text_all[y] = text_src[y] + text_pin[y] + text_dest2[y]
+                    text_all[y] = text_src[y] + text_pin[y] + text_dest1[y]
                 else:
-                    text_all[y] = text_src[y] + text_dest2[y]
+                    text_all[y] = text_src[y] + text_dest1[y]
                 count += 1
 
         with open(sub_dest1, "w", encoding="utf-8") as file:

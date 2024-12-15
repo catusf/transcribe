@@ -480,115 +480,117 @@ def transcribe_media(WAITING_NEW_FILE=5):
 
         media_files.append(media_file)
 
-    if not media_files:
-        time.sleep(WAITING_NEW_FILE)
-        return
+    # if not media_files:
+    #     time.sleep(WAITING_NEW_FILE)
+    #     return
 
-    media_file = media_files.pop()
+    while media_files:
+            
+        media_file = media_files.pop()
 
-    print(f"Start processing {no_current(media_file)}...", flush=True)
+        print(f"Start processing {no_current(media_file)} ({len(media_files)} files left)", flush=True)
 
-    outpath = SUBTITLE_DIR
-    json_meta = get_media_metadata(media_file)
-    media_length = determine_media_length(json_meta)
-    media_type = get_media_type(media_file)
+        outpath = SUBTITLE_DIR
+        json_meta = get_media_metadata(media_file)
+        media_length = determine_media_length(json_meta)
+        media_type = get_media_type(media_file)
 
-    print(f"\t*** Media length {format_duration(media_length)}", flush=True)
+        print(f"\t*** Media length {format_duration(media_length)}", flush=True)
 
-    path, filename = os.path.split(media_file)
-    base_name, extension = os.path.splitext(filename)
-    base_path = os.path.join(outpath, base_name)
-    new_media_file = os.path.join(outpath, base_name) + extension
+        path, filename = os.path.split(media_file)
+        base_name, extension = os.path.splitext(filename)
+        base_path = os.path.join(outpath, base_name)
+        new_media_file = os.path.join(outpath, base_name) + extension
 
-    wav_file = base_path + ".wav"
-    mp4_file = base_path + ".mp4"
-    mp3_file = base_path + ".mp3"
-    sub_zho = base_path + ".zh.srt"
-    txt_sub = base_path + ".txt"
+        wav_file = base_path + ".wav"
+        mp4_file = base_path + ".mp4"
+        mp3_file = base_path + ".mp3"
+        sub_zho = base_path + ".zh.srt"
+        txt_sub = base_path + ".txt"
 
-    if not convert_media(media_file, wav_file):
-        print(f"\tError during conversion: {no_current(media_file)}")
-    else:
+        if not convert_media(media_file, wav_file):
+            print(f"\tError during conversion: {no_current(media_file)}")
+        else:
+            print(
+                f"\tConversion successful: {no_current(media_file)} -> {no_current(wav_file)}"
+            )
+
+        if media_type == 2:  # Media file, then creates an audio fle
+            if not convert_media(media_file, mp3_file):
+                print(f"\tError during conversion: {no_current(media_file)}")
+            else:
+                print(
+                    f"\tConversion successful: {no_current(media_file)} -> {no_current(mp3_file)}"
+                )
+        elif media_type == 1:  # Audio file, then creates an video fle
+            if not make_black_video_file(media_file, mp4_file, media_length):
+                print(f"\tError during conversion: {no_current(media_file)}")
+            else:
+                print(
+                    f"\tConversion successful: {no_current(media_file)} -> {no_current(mp4_file)}"
+                )
+
+        # print(f"\tAudio file exported {no_current(audio_file)}", flush=True)
+
+        r = sr.Recognizer()
+
+        with sr.AudioFile(wav_file) as source:
+            audio_text = r.record(source)
+
+        print(f"\tStarting transcription {no_current(wav_file)}...", flush=True)
+
+        start = time.time()
+
+        result = r.recognize_whisper(
+            audio_text, language=LANGUAGE, show_dict=True, word_timestamps=True
+        )
+        os.remove(wav_file)
+        end = time.time()
+
         print(
-            f"\tConversion successful: {no_current(media_file)} -> {no_current(wav_file)}"
+            f"\t*** Time elapsed {format_duration(end - start)} - Media length {format_duration(media_length)} - relative speed {media_length/(end - start):.1f}x",
+            flush=True,
         )
 
-    if media_type == 2:  # Media file, then creates an audio fle
-        if not convert_media(media_file, mp3_file):
-            print(f"\tError during conversion: {no_current(media_file)}")
-        else:
-            print(
-                f"\tConversion successful: {no_current(media_file)} -> {no_current(mp3_file)}"
+        subs = pysrt.SubRipFile()
+        sub_idx = 1
+        item_count = len(result["segments"])
+        lines = []
+
+        for i in range(item_count):
+            start_time = result["segments"][i]["start"]
+            end_time = result["segments"][i]["end"]
+            text = result["segments"][i]["text"]
+
+            if languageEnglish2Code[LANGUAGE] == "zh":
+                text = chinese_converter.to_simplified(text)
+                # text = text.replace("v̌", "ǚ")
+
+            sub = pysrt.SubRipItem(
+                index=sub_idx,
+                start=pysrt.SubRipTime(seconds=start_time),
+                end=pysrt.SubRipTime(seconds=end_time),
+                text=text,
             )
-    elif media_type == 1:  # Audio file, then creates an video fle
-        if not make_black_video_file(media_file, mp4_file, media_length):
-            print(f"\tError during conversion: {no_current(media_file)}")
+
+            if text.strip():
+                lines.append(text)
+
+            subs.append(sub)
+            sub_idx += 1
+
+        if not subs:
+            print(f"Subtitle empty {sub_zho}", flush=True)
         else:
-            print(
-                f"\tConversion successful: {no_current(media_file)} -> {no_current(mp4_file)}"
-            )
+            subs.save(sub_zho)
 
-    # print(f"\tAudio file exported {no_current(audio_file)}", flush=True)
+            with open(txt_sub, "w", encoding="utf-8") as file:
+                file.write("\n".join(lines))
 
-    r = sr.Recognizer()
+            print(f"\tSubtitle written {no_current(sub_zho)}", flush=True)
+            print(f"Waiting for new media files in {MEDIA_DIR}...", flush=True)
 
-    with sr.AudioFile(wav_file) as source:
-        audio_text = r.record(source)
-
-    print(f"\tStarting transcription {no_current(wav_file)}...", flush=True)
-
-    start = time.time()
-
-    result = r.recognize_whisper(
-        audio_text, language=LANGUAGE, show_dict=True, word_timestamps=True
-    )
-    os.remove(wav_file)
-    end = time.time()
-
-    print(
-        f"\t*** Time elapsed {format_duration(end - start)} - Media length {format_duration(media_length)} - relative speed {media_length/(end - start):.1f}x",
-        flush=True,
-    )
-
-    subs = pysrt.SubRipFile()
-    sub_idx = 1
-    item_count = len(result["segments"])
-    lines = []
-
-    for i in range(item_count):
-        start_time = result["segments"][i]["start"]
-        end_time = result["segments"][i]["end"]
-        text = result["segments"][i]["text"]
-
-        if languageEnglish2Code[LANGUAGE] == "zh":
-            text = chinese_converter.to_simplified(text)
-            # text = text.replace("v̌", "ǚ")
-
-        sub = pysrt.SubRipItem(
-            index=sub_idx,
-            start=pysrt.SubRipTime(seconds=start_time),
-            end=pysrt.SubRipTime(seconds=end_time),
-            text=text,
-        )
-
-        if text.strip():
-            lines.append(text)
-
-        subs.append(sub)
-        sub_idx += 1
-
-    if not subs:
-        print(f"Subtitle empty {sub_zho}", flush=True)
-    else:
-        subs.save(sub_zho)
-
-        with open(txt_sub, "w", encoding="utf-8") as file:
-            file.write("\n".join(lines))
-
-        print(f"\tSubtitle written {no_current(sub_zho)}", flush=True)
-        print(f"Waiting for new media files in {MEDIA_DIR}...", flush=True)
-
-    shutil.move(media_file, new_media_file)
+        shutil.move(media_file, new_media_file)
 
 
 def main():

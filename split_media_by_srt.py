@@ -158,7 +158,7 @@ def split_video(video_file, srt_file, report_data):
                 print(
                     f"Error splitting video segment {index}: {e.stderr.decode('utf-8').strip()} with is command"
                 )
-                print(f"\n{" ".join(cmd)}")
+                print(f"\n{' '.join(cmd)}")
 
                 continue
 

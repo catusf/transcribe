@@ -5,6 +5,7 @@ description = "Transcription tool for media filesfiles"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "chinese-converter>=1.1.1",
     "pathvalidate",
     "pinyin-jyutping",
     "pysrt",
@@ -12,5 +13,6 @@ dependencies = [
     "requests",
     "speechrecognition",
     "torch>=2.5.1",
+    "transformers>=4.47.0",
     "translators",
 ]

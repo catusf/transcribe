@@ -4,4 +4,13 @@ version = "1.1.0"
 description = "Transcription tool for media filesfiles"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pathvalidate",
+    "pinyin-jyutping",
+    "pysrt",
+    "pytube",
+    "requests",
+    "speechrecognition",
+    "torch>=2.5.1",
+    "translators",
+]

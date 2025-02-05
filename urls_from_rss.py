@@ -9,6 +9,11 @@ from dateutil import parser
 # URL of the XML file
 podcasts = [
     {
+        "url": "https://feeds.buzzsprout.com/510028.rss",
+        "podcast_name": "Chillchat (Learn Chinese and Chill)",
+        "description": "Chilling Chinese"
+    },
+    {
         "url": "https://anchor.fm/s/1d7d70a4/podcast/rss",
         "podcast_name": "Speak Chinese Naturally",
         "description": "Speak Chinese Naturally -Learn Chinese (Mandarin)"
@@ -102,7 +107,11 @@ with open(f"./downloads/{filename}", "w", encoding="utf-8") as file:
 
         url = podcast["url"]
         podcast_name = podcast["podcast_name"]
-        response = requests.get(url)
+
+        headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'}
+
+        response= requests.get(url.strip(), headers=headers, timeout=10)        
+        # response = requests.get(url)
         rss_content = response.content
 
         # Parse the RSS feed

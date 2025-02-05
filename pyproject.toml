@@ -9,6 +9,7 @@ dependencies = [
     "pathvalidate",
     "pinyin-jyutping",
     "pysrt",
+    "python-dateutil>=2.9.0.post0",
     "pytube",
     "requests",
     "speechrecognition",

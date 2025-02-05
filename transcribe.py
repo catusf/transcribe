@@ -25,12 +25,12 @@ SEPARATOR = "\n"
 
 
 def is_colab():
-    try:
-        import google.colab
-
-        return True
-    except ImportError:
-        return False
+    if os.getenv("COLAB_RELEASE_TAG"):
+       print("Running in Colab")
+       return True
+    else:
+       print("NOT running in Colab")
+       return False
 
 
 # Define the directory containing the media files
